@@ -1,28 +1,37 @@
+extern mod avcodec;
 extern mod avformat;
+extern mod avutil;
 extern mod extra;
 extern mod sdl;
+extern mod swscale;
 
+use avformat::av_register_all;
 use extra::getopts::{getopts,optflag,Opt};
 use extra::url;
+use mediaplayer::MediaPlayer;
 use std::libc::consts::os::c95::EXIT_FAILURE;
 use std::os;
-use avformat::av_register_all;
-use mediaplayer::MediaPlayer;
 
-mod mediaplayer;
+mod avstream;
 mod extractor;
+mod mediaplayer;
+mod util;
+mod videodecoder;
+mod videorenderer;
 
 pub fn init() -> bool {
     unsafe {
         av_register_all();
+        debug!("av_register_all()");
     }
     match sdl::init(&[sdl::InitVideo, sdl::InitAudio, sdl::InitTimer]) {
         true =>  {
+            debug!("sdl::init()");
             true
         }
         false => {
             os::set_exit_status(EXIT_FAILURE as int);
-            println("sdl::init() failed");
+            error!("sdl::init() failed");
             false
         }
     }
@@ -39,7 +48,7 @@ pub fn main() {
     let matches = match getopts(args.tail(), opts) {
         Ok(m) => { m }
         Err(f) => {
-            println!("{}\n", f.to_err_msg());
+            error!("{}\n", f.to_err_msg());
             print_usage(program, opts);
             os::set_exit_status(EXIT_FAILURE as int);
             return;
@@ -79,6 +88,20 @@ pub fn play(source: ~str) -> bool {
     }
     if !mp.prepare() {
         return false;
+    }
+
+    mp.start();
+
+    loop {
+        match sdl::event::poll_event() {
+            sdl::event::QuitEvent => {
+                sdl::quit();
+                break;
+            }
+            sdl::event::NoEvent => {}
+            _ => {}
+        }
+        util::usleep(33_000);
     }
 
     true
