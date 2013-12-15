@@ -66,39 +66,39 @@ impl VideoDecoder {
             (*self.codec_ctx).pix_fmt
         }
     }
-    pub fn start(&self, port: Port<*mut avcodec::AVPacket>,
-                        chan: Chan<*mut avcodec::AVFrame>) {
+    pub fn start(&self, vd_port: Port<Option<*mut avcodec::AVPacket>>,
+                        vr_chan: Chan<Option<*mut avcodec::AVFrame>>) {
         let codec_ctx = self.codec_ctx.clone();
         do spawn {
-            while VideoDecoder::decode(codec_ctx, &port, &chan) {
+            while VideoDecoder::decode(codec_ctx, &vd_port, &vr_chan) {
                 ;
             }
         }
     }
     fn decode(codec_ctx: *mut avcodec::AVCodecContext,
-              port: &Port<*mut avcodec::AVPacket>,
-              chan: &Chan<*mut avcodec::AVFrame>) -> bool {
-        let frame = unsafe { avcodec::avcodec_alloc_frame() };
-        let mut got_frame: c_int = 0;
-        loop {
-            let packet = port.recv();
-            if frame.is_null() {
-                chan.send(mut_null());
-                break;
+              vd_port: &Port<Option<*mut avcodec::AVPacket>>,
+              vr_chan: &Chan<Option<*mut avcodec::AVFrame>>) -> bool {
+        match vd_port.recv() {
+            Some(packet) => {
+                unsafe {
+                    let mut got_frame: c_int = 0;
+                    let frame = avcodec::avcodec_alloc_frame();
+                    avcodec::avcodec_decode_video2(codec_ctx, frame,
+                                                   to_mut_unsafe_ptr(&mut got_frame),
+                                                   transmute_immut_unsafe(packet));
+                    avcodec::av_free_packet(packet);
+                    if got_frame != 0 {
+                        //debug!("send frame = {}", frame);
+                        vr_chan.send(Some(frame));
+                    }
+                }
+                true
             }
-            unsafe {
-                avcodec::avcodec_decode_video2(codec_ctx, frame,
-                                               to_mut_unsafe_ptr(&mut got_frame),
-                                               transmute_immut_unsafe(packet));
-            }
-            if got_frame != 0 {
-                chan.send(frame);
-                //debug!("got frame!");
-            }
-            unsafe {
-                avcodec::av_free_packet(packet);
+            None => {
+                info!("null packet received");
+                vr_chan.send(None);
+                false
             }
         }
-        false
     }
 }

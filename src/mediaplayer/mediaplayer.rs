@@ -4,10 +4,16 @@ use avcodec;
 use avutil;
 use videodecoder::VideoDecoder;
 use videorenderer::VideoRenderer;
+use std::comm::SharedPort;
 
 enum DataSource {
     UrlSource(url::Url),
     FileSource(Path)
+}
+
+#[deriving(Eq)]
+pub enum Command {
+    Start,
 }
 
 struct MediaPlayer {
@@ -15,6 +21,7 @@ struct MediaPlayer {
     extractor: Option<Extractor>,
     video_decoder: Option<VideoDecoder>,
     video_renderer: Option<VideoRenderer>,
+    ctrl_chan: Option<Chan<Command>>,
 }
 
 impl MediaPlayer {
@@ -24,6 +31,7 @@ impl MediaPlayer {
             extractor: None,
             video_decoder: None,
             video_renderer: None,
+            ctrl_chan: None,
         }
     }
     pub fn set_url_source(&mut self, url: url::Url) {
@@ -33,6 +41,10 @@ impl MediaPlayer {
         self.source = Some(FileSource(path));
     }
     pub fn prepare(&mut self) -> bool {
+        let (ctrl_port, ctrl_chan): (Port<Command>, Chan<Command>) = stream();
+        self.ctrl_chan = Some(ctrl_chan);
+        let ctrl_port = SharedPort::new(ctrl_port);
+
         match self.source {
             Some(UrlSource(ref url)) => {
                 warn!("Playing url isn't implemented yet! ({})", url.to_str());
@@ -40,7 +52,7 @@ impl MediaPlayer {
             }
             Some(FileSource(ref path)) => {
                 debug!("prepare: {}", path.display());
-                self.extractor = Extractor::new(path);
+                self.extractor = Extractor::new(ctrl_port.clone(), path);
                 if self.extractor.is_none() {
                     return false;
                 }
@@ -77,13 +89,19 @@ impl MediaPlayer {
         true
     }
     pub fn start(&mut self) {
-        let (vd_port, vd_chan): (Port<*mut avcodec::AVPacket>,
-                                 Chan<*mut avcodec::AVPacket>) = stream();
-        let (vr_port, vr_chan): (Port<*mut avcodec::AVFrame>,
-                                 Chan<*mut avcodec::AVFrame>) = stream();
+        let (vd_port, vd_chan): (Port<Option<*mut avcodec::AVPacket>>,
+                                 Chan<Option<*mut avcodec::AVPacket>>) = stream();
+        let (vr_port, vr_chan): (Port<Option<*mut avcodec::AVFrame>>,
+                                 Chan<Option<*mut avcodec::AVFrame>>) = stream();
+
 
         self.extractor.get_ref().start(vd_chan);
-        self.video_decoder.get_ref().start(vd_port, vr_chan);
         self.video_renderer.get_ref().start(vr_port);
+        self.video_decoder.get_ref().start(vd_port, vr_chan);
+
+        self.send_cmd(Start);
+    }
+    pub fn send_cmd(&self, cmd: Command) {
+        self.ctrl_chan.get_ref().send(cmd);
     }
 }

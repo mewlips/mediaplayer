@@ -92,13 +92,23 @@ pub fn play(source: ~str) -> bool {
 
     mp.start();
 
-    loop {
+    'main: loop {
         match sdl::event::poll_event() {
             sdl::event::QuitEvent => {
                 sdl::quit();
                 break;
             }
-            sdl::event::NoEvent => {}
+            /*sdl::event::MouseButtonEvent(button, state, _, _) => {
+                match button {
+                    sdl::event::LeftMouse if state => {
+                        mp.send_cmd(mediaplayer::Start);
+                    }
+                    _ => {
+                    }
+                }
+            }*/
+            sdl::event::NoEvent => {
+            }
             _ => {}
         }
         util::usleep(33_000);

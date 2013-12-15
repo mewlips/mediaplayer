@@ -6,21 +6,26 @@ use std::ptr::mut_null;
 use util;
 use std::mem::size_of;
 use std::cast::{transmute};
+use mediaplayer;
+use mediaplayer::{Command};
+use std::comm::SharedPort;
 
 struct Extractor {
     priv fmt_ctx: *mut avformat::AVFormatContext,
     streams: ~[AVStream],
     video_index: Option<int>,
     audio_index: Option<int>,
+    ctrl_port: SharedPort<Command>,
 }
 
 impl Extractor {
-    pub fn new(path: &Path) -> Option<Extractor> {
+    pub fn new(ctrl_port: SharedPort<Command>, path: &Path) -> Option<Extractor> {
         let mut extractor = Extractor {
             fmt_ctx: unsafe { avformat::avformat_alloc_context() },
             streams: ~[],
             video_index: None,
             audio_index: None,
+            ctrl_port: ctrl_port,
         };
 
         if extractor.fmt_ctx.is_null() {
@@ -89,33 +94,48 @@ impl Extractor {
         }
         None
     }
-    pub fn start(&self, vd_chan: Chan<*mut avcodec::AVPacket>) {
+    pub fn start(&self, vd_chan: Chan<Option<*mut avcodec::AVPacket>>) {
         debug!("Extractor::start()");
         let fmt_ctx = self.fmt_ctx.clone();
         let video_index = self.video_index.clone();
         let audio_index = self.audio_index.clone();
+        let ctrl_port = self.ctrl_port.clone();
         do spawn {
-            while Extractor::pump(fmt_ctx, video_index, audio_index, &vd_chan) {
-                ;
+            loop {
+                let cmd = ctrl_port.recv();
+                if cmd == mediaplayer::Start {
+                    while Extractor::pump(fmt_ctx,
+                                          video_index, audio_index, &vd_chan) {
+                        /*if ctrl_port.peek() {
+                            match ctrl_port.recv() {
+                                StartPause => {
+                                    break;
+                                }
+                                _ => {
+                                }
+                            }
+                        }*/
+                        ;
+                    }
+                }
             }
         }
     }
     fn pump(fmt_ctx: *mut avformat::AVFormatContext,
             video_index: Option<int>, audio_index: Option<int>,
-            vd_chan: &Chan<*mut avcodec::AVPacket>) -> bool {
+            vd_chan: &Chan<Option<*mut avcodec::AVPacket>>) -> bool {
         let size = size_of::<avcodec::AVPacket>();
         let packet: *mut avcodec::AVPacket = unsafe {
             transmute(avutil::av_malloc(size as u64))
         };
         if packet.is_null() {
             error!("alloctaion failed");
+            vd_chan.send(None);
             return false;
-        }
-        unsafe {
-            avcodec::av_init_packet(packet);
         }
 
         let result = unsafe {
+            avcodec::av_init_packet(packet);
             avformat::av_read_frame(fmt_ctx, packet)
         };
         if result >= 0 {
@@ -125,7 +145,7 @@ impl Extractor {
             match video_index {
                 Some(video_index) => {
                     if video_index == stream_index {
-                        vd_chan.send(packet);
+                        vd_chan.send(Some(packet));
                     }
                 }
                 None => {
@@ -140,9 +160,11 @@ impl Extractor {
                 }
             }
             */
-            util::usleep(20_000); // TEMPORARY
+            util::usleep(10_000); // TEMPORARY
             return true;
         } else {
+            info!("end of file");
+            vd_chan.send(None);
             return false;
         }
     }
