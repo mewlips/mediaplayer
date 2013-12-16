@@ -4,7 +4,6 @@ use sdl;
 use std::cast::{transmute};
 use std::libc::{c_int};
 use std::ptr::{null,mut_null};
-use std::vec::raw::{to_ptr,to_mut_ptr};
 use swscale;
 use util;
 
@@ -66,10 +65,10 @@ impl VideoRenderer {
                             avcodec::avpicture_fill(transmute(frame_rgb),
                                                     transmute(p), avutil::AV_PIX_FMT_BGR24,
                                                     width as c_int, height as c_int);
-                            swscale::sws_scale(sws_ctx, transmute(to_ptr((*frame).data)),
-                                               to_ptr((*frame).linesize), 0, (*frame).height,
-                                               transmute(to_mut_ptr((*frame_rgb).data)),
-                                               to_ptr((*frame_rgb).linesize));
+                            swscale::sws_scale(sws_ctx, transmute((*frame).data.as_ptr()),
+                                               (*frame).linesize.as_ptr(), 0, (*frame).height,
+                                               transmute((*frame_rgb).data.as_mut_ptr()),
+                                               (*frame_rgb).linesize.as_ptr());
                         }
                     });
                 });

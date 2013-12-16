@@ -2,6 +2,7 @@ use avformat;
 use avutil;
 use std::libc::{c_uint};
 
+#[deriving(Clone)]
 pub struct AVStream {
     av_stream: *mut avformat::AVStream,
 }
@@ -27,14 +28,6 @@ impl AVStream {
     pub fn get_index(&self) -> int {
         unsafe {
             (*self.av_stream).index as int
-        }
-    }
-}
-
-impl Clone for AVStream {
-    fn clone(&self) -> AVStream {
-        AVStream {
-            av_stream: self.av_stream,
         }
     }
 }
