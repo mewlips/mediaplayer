@@ -16,7 +16,9 @@ mod avstream;
 mod extractor;
 mod mediaplayer;
 mod util;
+mod ffmpegdecoder;
 mod videodecoder;
+mod audiodecoder;
 mod videorenderer;
 
 pub fn init() -> bool {

@@ -9,6 +9,8 @@ use std::cast::{transmute};
 use mediaplayer;
 use mediaplayer::{Command};
 use std::comm::SharedPort;
+use extra::arc::RWArc;
+use extra::dlist::DList;
 
 struct Extractor {
     priv fmt_ctx: *mut avformat::AVFormatContext,
@@ -82,19 +84,23 @@ impl Extractor {
         let mut count = index;
         for av_stream in self.streams.iter() {
             if av_stream.get_type() == type_
-               && count == 0 {
-                if type_ == avutil::AVMEDIA_TYPE_VIDEO {
-                    self.video_index = Some(av_stream.get_index());
-                } else if type_ == avutil::AVMEDIA_TYPE_AUDIO {
-                    self.audio_index = Some(av_stream.get_index());
+               && count >= 0 {
+                if count == 0 {
+                    if type_ == avutil::AVMEDIA_TYPE_VIDEO {
+                        self.video_index = Some(av_stream.get_index());
+                    } else if type_ == avutil::AVMEDIA_TYPE_AUDIO {
+                        self.audio_index = Some(av_stream.get_index());
+                    }
+                    return Some(av_stream);
+                } else {
+                    count -= 1;
                 }
-                return Some(av_stream);
             }
-            count -= 1;
         }
         None
     }
-    pub fn start(&self, vd_chan: Chan<Option<*mut avcodec::AVPacket>>) {
+    pub fn start(&self, vd_chan: Chan<Option<*mut avcodec::AVPacket>>,
+                        audio_queue: RWArc<~DList<*mut avcodec::AVPacket>>) {
         debug!("Extractor::start()");
         let fmt_ctx = self.fmt_ctx.clone();
         let video_index = self.video_index.clone();
@@ -105,7 +111,8 @@ impl Extractor {
                 let cmd = ctrl_port.recv();
                 if cmd == mediaplayer::Start {
                     while Extractor::pump(fmt_ctx,
-                                          video_index, audio_index, &vd_chan) {
+                                          video_index, audio_index,
+                                          &vd_chan, &audio_queue) {
                         /*if ctrl_port.peek() {
                             match ctrl_port.recv() {
                                 StartPause => {
@@ -123,7 +130,8 @@ impl Extractor {
     }
     fn pump(fmt_ctx: *mut avformat::AVFormatContext,
             video_index: Option<int>, audio_index: Option<int>,
-            vd_chan: &Chan<Option<*mut avcodec::AVPacket>>) -> bool {
+            vd_chan: &Chan<Option<*mut avcodec::AVPacket>>,
+            audio_queue: &RWArc<~DList<*mut avcodec::AVPacket>>) -> bool {
         let size = size_of::<avcodec::AVPacket>();
         let packet: *mut avcodec::AVPacket = unsafe {
             transmute(avutil::av_malloc(size as u64))
@@ -151,15 +159,17 @@ impl Extractor {
                 None => {
                 }
             }
-            // TODO
-            /*
             match audio_index {
                 Some(audio_index) => {
+                    if audio_index == stream_index {
+                        audio_queue.write(|queue| {
+                            queue.insert_when(packet, |_,_| { false });
+                        });
+                    }
                 }
                 None => {
                 }
             }
-            */
             util::usleep(10_000); // TEMPORARY
             return true;
         } else {
