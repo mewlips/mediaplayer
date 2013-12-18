@@ -4,33 +4,30 @@ use avutil;
 use ffmpegdecoder::FFmpegDecoder;
 use sdl::audio;
 use util;
+use buffer::AudioBuffer;
+use std::cast::transmute;
 use extra::arc::RWArc;
-use extra::dlist::DList;
+use std::libc::c_int;
+use std::ptr::{mut_null,to_mut_unsafe_ptr};
+use std::cast::{transmute_immut_unsafe};
 
-pub static SDL_AudioBufferSize: u16  = 1024;
+pub static SDL_AudioBufferSize: u16  = 4096;
 
 mod audio_alt {
     use sdl::audio::{AudioFormat,Channels,ll,ObtainedAudioSpec};
     use avcodec;
     use std::libc::{c_int,c_void};
     use std::ptr::null;
-    use std::cast::{forget,transmute};
-    use extra::arc::RWArc;
-    use extra::dlist::DList;
-
-    pub struct AudioCallback {
-        callback: fn(&mut [u8], *mut avcodec::AVCodecContext,
-                     RWArc<~DList<*mut avcodec::AVPacket>>),
-        codec_ctx: *mut avcodec::AVCodecContext,
-        audio_queue: RWArc<~DList<*mut avcodec::AVPacket>>,
-    }
+    use std::cast::{transmute};
+    use buffer::AudioBuffer;
+    use std::cast::forget;
 
     pub struct DesiredAudioSpec {
         freq: c_int,
         format: AudioFormat,
         channels: Channels,
         samples: u16,
-        callback: AudioCallback,
+        callback: *c_void,
     }
 
     impl DesiredAudioSpec {
@@ -83,15 +80,24 @@ mod audio_alt {
     }
 
     extern fn native_callback(userdata: *c_void, stream: *mut u8, len: c_int) {
-        let cb: ~AudioCallback = unsafe { transmute(userdata) };
-        let callback = cb.callback;
-        let codec_ctx = cb.codec_ctx;
-        let audio_queue = cb.audio_queue;
-        let buffer = unsafe { transmute((stream, len as uint)) };
-        callback(buffer, codec_ctx, audio_queue);
-        unsafe {
-            forget(callback);
+        println!("native_callback {}", len);
+        let audio_buffer: ~AudioBuffer = unsafe { transmute(userdata) };
+        let mut idx = 0;
+        while idx < len && idx < (audio_buffer.data.len() as i32) {
+            unsafe {
+                *stream.offset(idx as int) = audio_buffer.data[idx];
+            }
+            idx += 1;
         }
+        unsafe {
+            forget(audio_buffer);
+        }
+
+        //::util::usleep(10_1000);
+        //let buffer: &mut [u8] = unsafe { transmute((stream, len as uint)) };
+        //for i in buffer.mut_iter() {
+        //    *i = 128;
+        //}
     }
 }
 
@@ -112,45 +118,20 @@ impl AudioDecoder {
             }
         }
     }
-    pub fn audio_callback(buffer: &mut [u8],
-                          codec_ctx: *mut avcodec::AVCodecContext,
-                          audio_queue: RWArc<~DList<*mut avcodec::AVPacket>>) {
-        loop {
-            audio_queue.read(|queue| {
-                for packet in queue.move_iter() {
-                    println!("audio_callback {} {} {}", buffer.len(), codec_ctx,
-                             packet);
-                }
-            });
-        }
-
-        for u in buffer.mut_iter() {
-            *u = 128;
-        }
-        //util::usleep(100_000);
-
-        /*match ad_port.recv() {
-            Some(packet) => {
-                AudioDecoder::decode(buffer, codec_ctx, packet);
-            }
-            None => {
-            }
-        }*/
-    }
-    pub fn start(&self, audio_queue: RWArc<~DList<*mut avcodec::AVPacket>>) {
+    pub fn start(&self, ad_port: Port<Option<*mut avcodec::AVPacket>>) {
         let codec_ctx = self.decoder.codec_ctx.clone();
 
-        let wanted_spec = audio_alt::DesiredAudioSpec {
-            freq: unsafe { (*codec_ctx).sample_rate },
-            format: audio::S16_AUDIO_FORMAT,
-            channels: audio::Channels::new(unsafe { (*codec_ctx).channels }),
-            samples: SDL_AudioBufferSize,
-            callback: audio_alt::AudioCallback {
-                          callback: AudioDecoder::audio_callback,
-                          codec_ctx: codec_ctx,
-                          audio_queue: audio_queue,
-                      }
-        };
+        let audio_buffer = RWArc::new(AudioBuffer::new());
+
+        let wanted_spec = audio_buffer.read(|audio_buffer| {
+            audio_alt::DesiredAudioSpec {
+                freq: unsafe { (*codec_ctx).sample_rate },
+                format: audio::S16_AUDIO_FORMAT,
+                channels: audio::Channels::new(unsafe { (*codec_ctx).channels }),
+                samples: SDL_AudioBufferSize,
+                callback: unsafe { transmute(&audio_buffer) },
+            }
+        });
 
         match audio_alt::open(wanted_spec) {
             Ok(_obtained_spec) => {
@@ -160,11 +141,44 @@ impl AudioDecoder {
             }
         }
 
-        //audio::pause(false);
+        audio::pause(false);
+
+        do spawn {
+            while AudioDecoder::decode(codec_ctx, &ad_port, &audio_buffer) {
+                ;
+            }
+        }
     }
-    fn decode(buffer: &mut [u8],
-              codec_ctx: *mut avcodec::AVCodecContext,
-              packet: *mut avcodec::AVPacket) {
-        println("decode");
+    fn decode(codec_ctx: *mut avcodec::AVCodecContext,
+              ad_port: &Port<Option<*mut avcodec::AVPacket>>,
+              audio_buffer: &RWArc<AudioBuffer>) -> bool {
+        match ad_port.recv() {
+            Some(packet) => {
+                println!("decode");
+                let mut got_frame: c_int = 0;
+                unsafe {
+                    let frame = avcodec::avcodec_alloc_frame();
+                    avcodec::avcodec_decode_audio4(
+                        codec_ctx, frame, to_mut_unsafe_ptr(&mut got_frame),
+                        transmute_immut_unsafe(packet));
+                    avcodec::av_free_packet(packet);
+                    if got_frame != 0 {
+                        let data_size = avutil::av_samples_get_buffer_size(
+                            mut_null(), (*codec_ctx).channels, (*frame).nb_samples,
+                            (*codec_ctx).sample_fmt, 1);
+                        println!("data_size = {}", data_size);
+                        audio_buffer.write(|audio_buffer| {
+                            audio_buffer.copy((*frame).data[0], data_size as int);
+                        });
+                    }
+                }
+                true
+            }
+            None => {
+                info!("null packet received");
+                audio::pause(true);
+                false
+            }
+        }
     }
 }

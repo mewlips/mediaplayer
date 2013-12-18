@@ -9,8 +9,6 @@ use std::cast::{transmute};
 use mediaplayer;
 use mediaplayer::{Command};
 use std::comm::SharedPort;
-use extra::arc::RWArc;
-use extra::dlist::DList;
 
 struct Extractor {
     priv fmt_ctx: *mut avformat::AVFormatContext,
@@ -99,8 +97,9 @@ impl Extractor {
         }
         None
     }
-    pub fn start(&self, vd_chan: Chan<Option<*mut avcodec::AVPacket>>,
-                        audio_queue: RWArc<~DList<*mut avcodec::AVPacket>>) {
+    pub fn start(&self,
+                 vd_chan: Chan<Option<*mut avcodec::AVPacket>>,
+                 ad_chan: Chan<Option<*mut avcodec::AVPacket>>) {
         debug!("Extractor::start()");
         let fmt_ctx = self.fmt_ctx.clone();
         let video_index = self.video_index.clone();
@@ -112,16 +111,7 @@ impl Extractor {
                 if cmd == mediaplayer::Start {
                     while Extractor::pump(fmt_ctx,
                                           video_index, audio_index,
-                                          &vd_chan, &audio_queue) {
-                        /*if ctrl_port.peek() {
-                            match ctrl_port.recv() {
-                                StartPause => {
-                                    break;
-                                }
-                                _ => {
-                                }
-                            }
-                        }*/
+                                          &vd_chan, &ad_chan) {
                         ;
                     }
                 }
@@ -131,7 +121,7 @@ impl Extractor {
     fn pump(fmt_ctx: *mut avformat::AVFormatContext,
             video_index: Option<int>, audio_index: Option<int>,
             vd_chan: &Chan<Option<*mut avcodec::AVPacket>>,
-            audio_queue: &RWArc<~DList<*mut avcodec::AVPacket>>) -> bool {
+            ad_chan: &Chan<Option<*mut avcodec::AVPacket>>) -> bool {
         let size = size_of::<avcodec::AVPacket>();
         let packet: *mut avcodec::AVPacket = unsafe {
             transmute(avutil::av_malloc(size as u64))
@@ -162,9 +152,7 @@ impl Extractor {
             match audio_index {
                 Some(audio_index) => {
                     if audio_index == stream_index {
-                        audio_queue.write(|queue| {
-                            queue.insert_when(packet, |_,_| { false });
-                        });
+                        ad_chan.send(Some(packet));
                     }
                 }
                 None => {

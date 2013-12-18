@@ -6,8 +6,6 @@ use videodecoder::VideoDecoder;
 use audiodecoder::AudioDecoder;
 use videorenderer::VideoRenderer;
 use std::comm::SharedPort;
-use extra::arc::RWArc;
-use extra::dlist::DList;
 
 enum DataSource {
     UrlSource(url::Url),
@@ -95,15 +93,14 @@ impl MediaPlayer {
     pub fn start(&mut self) {
         let (vd_port, vd_chan): (Port<Option<*mut avcodec::AVPacket>>,
                                  Chan<Option<*mut avcodec::AVPacket>>) = stream();
-        let (vr_port, vr_chan): (Port<Option<*mut avcodec::AVFrame>>,
-                                 Chan<Option<*mut avcodec::AVFrame>>) = stream();
         let (ad_port, ad_chan): (Port<Option<*mut avcodec::AVPacket>>,
                                  Chan<Option<*mut avcodec::AVPacket>>) = stream();
-        let audio_queue = ~RWArc::new(DList::new());
+        let (vr_port, vr_chan): (Port<Option<*mut avcodec::AVFrame>>,
+                                 Chan<Option<*mut avcodec::AVFrame>>) = stream();
 
-        self.extractor.get_ref().start(vd_chan, audio_queue.clone());
+        self.extractor.get_ref().start(vd_chan, ad_chan);
         self.video_decoder.get_ref().start(vd_port, vr_chan);
-        self.audio_decoder.get_ref().start(audio_queue.clone());
+        self.audio_decoder.get_ref().start(ad_port);
         self.video_renderer.get_ref().start(vr_port);
 
         self.send_cmd(Start);
