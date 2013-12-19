@@ -20,7 +20,8 @@ mod ffmpegdecoder;
 mod videodecoder;
 mod audiodecoder;
 mod videorenderer;
-mod buffer;
+mod audiorenderer;
+mod audiopipe;
 
 pub fn init() -> bool {
     unsafe {

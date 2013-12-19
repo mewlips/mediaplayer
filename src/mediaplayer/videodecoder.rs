@@ -3,8 +3,7 @@ use avstream::AVStream;
 use avutil;
 use std::cast::{transmute_immut_unsafe};
 use std::libc::{c_int};
-use std::ptr::{mut_null,to_mut_unsafe_ptr};
-use util;
+use std::ptr::{to_mut_unsafe_ptr};
 use ffmpegdecoder::FFmpegDecoder;
 
 struct VideoDecoder {
