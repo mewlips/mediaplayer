@@ -2,11 +2,12 @@ use extra::url;
 use extractor::Extractor;
 use avcodec;
 use avutil;
-use videodecoder::VideoDecoder;
-use audiodecoder::AudioDecoder;
-use videorenderer::VideoRenderer;
-use audiorenderer::AudioRenderer;
+use video_decoder::VideoDecoder;
+use audio_decoder::AudioDecoder;
+use video_renderer::VideoRenderer;
+use audio_renderer::AudioRenderer;
 use std::comm::SharedPort;
+use video_scheduler::{VideoBuffer,VideoScheduler};
 
 enum DataSource {
     UrlSource(url::Url),
@@ -23,6 +24,7 @@ struct MediaPlayer {
     extractor: Option<Extractor>,
     video_decoder: Option<VideoDecoder>,
     audio_decoder: Option<AudioDecoder>,
+    video_scheduler: Option<VideoScheduler>,
     video_renderer: Option<VideoRenderer>,
     audio_renderer: Option<AudioRenderer>,
     ctrl_chan: Option<Chan<Command>>,
@@ -35,6 +37,7 @@ impl MediaPlayer {
             extractor: None,
             video_decoder: None,
             audio_decoder: None,
+            video_scheduler: None,
             video_renderer: None,
             audio_renderer: None,
             ctrl_chan: None,
@@ -76,6 +79,7 @@ impl MediaPlayer {
                 let width = video_decoder.width;
                 let height = video_decoder.height;
                 let pix_fmt = video_decoder.pix_fmt;
+                self.video_scheduler = Some(VideoScheduler::new(5));
                 self.video_renderer = Some(VideoRenderer::new(width, height, pix_fmt));
             }
             None => {
@@ -96,18 +100,21 @@ impl MediaPlayer {
         true
     }
     pub fn start(&mut self) {
-        let (vd_port, vd_chan): (Port<Option<*mut avcodec::AVPacket>>,
-                                 Chan<Option<*mut avcodec::AVPacket>>) = stream();
-        let (ad_port, ad_chan): (Port<Option<*mut avcodec::AVPacket>>,
-                                 Chan<Option<*mut avcodec::AVPacket>>) = stream();
-        let (vr_port, vr_chan): (Port<Option<*mut avcodec::AVFrame>>,
-                                 Chan<Option<*mut avcodec::AVFrame>>) = stream();
-        let (ar_port, ar_chan): (Port<Option<~[u8]>>,
-                                 Chan<Option<~[u8]>>) = stream();
+        // Extrator <--> Video Decoder
+        let (vd_port, vd_chan) = stream::<Option<*mut avcodec::AVPacket>>();
+        // Extractor <--> Audio Decoder
+        let (ad_port, ad_chan) = stream::<Option<*mut avcodec::AVPacket>>();
+        // Video Decoder <--> Video Scheduler
+        let (vs_port, vs_chan) = stream::<Option<*mut avcodec::AVFrame>>();
+        // Video Scheduler <--> Video Renderer
+        let (vr_port, vr_chan) = stream::<Option<~VideoBuffer>>();
+        // Audio Decoder <--> Audio Renderer
+        let (ar_port, ar_chan) = stream::<Option<~[u8]>>();
 
         self.extractor.get_ref().start(vd_chan, ad_chan);
-        self.video_decoder.get_ref().start(vd_port, vr_chan);
+        self.video_decoder.get_ref().start(vd_port, vs_chan);
         self.audio_decoder.get_ref().start(ad_port, ar_chan);
+        self.video_scheduler.get_ref().start(vs_port, vr_chan);
         self.video_renderer.get_ref().start(vr_port);
         self.audio_renderer.get_ref().start(ar_port);
 

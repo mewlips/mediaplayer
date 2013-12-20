@@ -1,10 +1,10 @@
 use avcodec;
-use avstream::AVStream;
+use av_stream::AVStream;
 use avutil;
 use std::cast::{transmute_immut_unsafe};
 use std::libc::{c_int};
 use std::ptr::{to_mut_unsafe_ptr};
-use ffmpegdecoder::FFmpegDecoder;
+use ffmpeg_decoder::FFmpegDecoder;
 
 struct VideoDecoder {
     decoder: FFmpegDecoder,

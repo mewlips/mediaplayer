@@ -1,5 +1,5 @@
 use avcodec;
-use avstream::AVStream;
+use av_stream::AVStream;
 use avutil;
 use std::ptr::{mut_null,to_mut_unsafe_ptr};
 use std::cast::{transmute_immut_unsafe};

@@ -12,16 +12,17 @@ use mediaplayer::MediaPlayer;
 use std::libc::consts::os::c95::EXIT_FAILURE;
 use std::os;
 
-mod avstream;
+mod av_stream;
 mod extractor;
 mod mediaplayer;
 mod util;
-mod ffmpegdecoder;
-mod videodecoder;
-mod audiodecoder;
-mod videorenderer;
-mod audiorenderer;
-mod audiopipe;
+mod ffmpeg_decoder;
+mod video_decoder;
+mod audio_decoder;
+mod video_scheduler;
+mod video_renderer;
+mod audio_renderer;
+mod audio_pipe;
 
 pub fn init() -> bool {
     unsafe {

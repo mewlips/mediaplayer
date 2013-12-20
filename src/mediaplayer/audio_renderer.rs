@@ -2,7 +2,7 @@ use std::libc::c_int;
 use extra::arc::RWArc;
 use std::os;
 use sdl::audio;
-use audiopipe::AudioPipe;
+use audio_pipe::AudioPipe;
 use avcodec;
 use std::cast::transmute;
 use std::libc;
@@ -15,7 +15,7 @@ mod audio_alt {
     use std::libc::{c_int,c_void};
     use std::ptr::null;
     use std::cast::{transmute};
-    use audiopipe::AudioPipe;
+    use audio_pipe::AudioPipe;
     use std::cast::forget;
 
     pub struct DesiredAudioSpec {
@@ -143,7 +143,6 @@ impl AudioRenderer {
                 if !ok {
                     break;
                 }
-                //util::usleep(1_000);
             }
             debug!("null chunk recevied");
         }
@@ -177,7 +176,6 @@ impl AudioRenderer {
                     audio::pause(false);
                     paused = false;
                 }
-                //util::usleep(10_1000);
             }
         }
     }

@@ -1,7 +1,7 @@
 use avcodec;
 use avformat;
 use avutil;
-use avstream::{AVStream,AVStreamIterator};
+use av_stream::{AVStream,AVStreamIterator};
 use std::ptr::mut_null;
 use util;
 use std::mem::size_of;

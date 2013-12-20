@@ -6,6 +6,7 @@ use std::libc::{c_int};
 use std::ptr::{null,mut_null};
 use swscale;
 use util;
+use video_scheduler::VideoBuffer;
 
 struct VideoRenderer {
     width: int,
@@ -16,14 +17,14 @@ struct VideoRenderer {
 impl VideoRenderer {
     pub fn new(width: int, height: int, pix_fmt: avutil::Enum_AVPixelFormat)
             -> VideoRenderer {
-        debug!("width = {}, height = {}, pix_fmt = {}", width, height, pix_fmt as int);
+        debug!("pix_fmt = {}", pix_fmt as int);
         VideoRenderer {
             width: width,
             height: height,
             pix_fmt: pix_fmt,
         }
     }
-    pub fn start(&self, vr_port: Port<Option<*mut avcodec::AVFrame>>) {
+    pub fn start(&self, vr_port: Port<Option<~VideoBuffer>>) {
         let screen = match sdl::video::set_video_mode(
                                             self.width, self.height, 24,
                                             [sdl::video::HWSurface],
@@ -44,21 +45,23 @@ impl VideoRenderer {
         let width = self.width.clone();
         let height = self.height.clone();
         do spawn {
-            while VideoRenderer::render(width, height, screen, frame_rgb.clone(),
+            while VideoRenderer::render(screen, frame_rgb.clone(),
                                         sws_ctx.clone(), &vr_port) {
                 ;
             }
         }
     }
 
-    fn render(width: int, height: int,
-              screen: &sdl::video::Surface,
+    fn render(screen: &sdl::video::Surface,
               frame_rgb: *mut avcodec::AVFrame,
               sws_ctx: *mut swscale::Struct_SwsContext,
-              vr_port: &Port<Option<*mut avcodec::AVFrame>>) -> bool {
+              vr_port: &Port<Option<~VideoBuffer>>) -> bool {
         match vr_port.recv() {
-            Some(mut frame) => {
-                //debug!("frame = {}", frame);
+            Some(ref mut buffer) => {
+                let frame = buffer.frame;
+                let width = buffer.width;
+                let height = buffer.height;
+                //debug!("width = {}, height = {}", width, height);
                 screen.with_lock(|pixels| {
                     pixels.as_mut_buf(|p, _len| {
                         unsafe {
@@ -74,7 +77,7 @@ impl VideoRenderer {
                 });
                 screen.flip();
                 unsafe {
-                    avcodec::avcodec_free_frame(&mut frame);
+                    avcodec::avcodec_free_frame(transmute(&frame));
                 }
                 true
             }
