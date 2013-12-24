@@ -7,7 +7,7 @@ use std::libc::c_int;
 use std::ptr::{mut_null,to_mut_unsafe_ptr};
 use std::vec;
 
-struct AudioDecoder {
+pub struct AudioDecoder {
     decoder: FFmpegDecoder,
 }
 

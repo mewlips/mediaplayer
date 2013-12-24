@@ -83,7 +83,7 @@ mod audio_alt {
 }
 
 
-struct AudioRenderer {
+pub struct AudioRenderer {
     codec_ctx: *mut avcodec::AVCodecContext,
     pipe_out: c_int,
     audio_pipe: AudioPipe,

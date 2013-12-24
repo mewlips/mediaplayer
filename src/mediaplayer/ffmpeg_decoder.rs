@@ -5,7 +5,7 @@ use std::ptr::{mut_null,to_mut_unsafe_ptr};
 use std::cast::{transmute_immut_unsafe};
 use util;
 
-struct FFmpegDecoder {
+pub struct FFmpegDecoder {
     codec_ctx: *mut avcodec::AVCodecContext,
     codec: *avcodec::AVCodec,
     decoder: *mut avcodec::AVCodec,

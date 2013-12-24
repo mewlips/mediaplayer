@@ -6,7 +6,6 @@ use video_decoder::VideoDecoder;
 use audio_decoder::AudioDecoder;
 use video_renderer::VideoRenderer;
 use audio_renderer::AudioRenderer;
-use std::comm::SharedPort;
 use video_scheduler::{VideoBuffer,VideoScheduler};
 
 enum DataSource {
@@ -19,7 +18,7 @@ pub enum Command {
     Start,
 }
 
-struct MediaPlayer {
+pub struct MediaPlayer {
     source: Option<DataSource>,
     extractor: Option<Extractor>,
     video_decoder: Option<VideoDecoder>,
@@ -27,7 +26,6 @@ struct MediaPlayer {
     video_scheduler: Option<VideoScheduler>,
     video_renderer: Option<VideoRenderer>,
     audio_renderer: Option<AudioRenderer>,
-    ctrl_chan: Option<Chan<Command>>,
 }
 
 impl MediaPlayer {
@@ -40,7 +38,6 @@ impl MediaPlayer {
             video_scheduler: None,
             video_renderer: None,
             audio_renderer: None,
-            ctrl_chan: None,
         }
     }
     pub fn set_url_source(&mut self, url: url::Url) {
@@ -50,10 +47,6 @@ impl MediaPlayer {
         self.source = Some(FileSource(path));
     }
     pub fn prepare(&mut self) -> bool {
-        let (ctrl_port, ctrl_chan): (Port<Command>, Chan<Command>) = stream();
-        self.ctrl_chan = Some(ctrl_chan);
-        let ctrl_port = SharedPort::new(ctrl_port);
-
         match self.source {
             Some(UrlSource(ref url)) => {
                 warn!("Playing url isn't implemented yet! ({})", url.to_str());
@@ -61,7 +54,7 @@ impl MediaPlayer {
             }
             Some(FileSource(ref path)) => {
                 debug!("prepare: {}", path.display());
-                self.extractor = Extractor::new(ctrl_port.clone(), path);
+                self.extractor = Extractor::new(path);
                 if self.extractor.is_none() {
                     return false;
                 }
@@ -101,15 +94,15 @@ impl MediaPlayer {
     }
     pub fn start(&mut self) {
         // Extrator <--> Video Decoder
-        let (vd_port, vd_chan) = stream::<Option<*mut avcodec::AVPacket>>();
+        let (vd_port, vd_chan) = Chan::<Option<*mut avcodec::AVPacket>>::new();
         // Extractor <--> Audio Decoder
-        let (ad_port, ad_chan) = stream::<Option<*mut avcodec::AVPacket>>();
+        let (ad_port, ad_chan) = Chan::<Option<*mut avcodec::AVPacket>>::new();
         // Video Decoder <--> Video Scheduler
-        let (vs_port, vs_chan) = stream::<Option<*mut avcodec::AVFrame>>();
+        let (vs_port, vs_chan) = Chan::<Option<*mut avcodec::AVFrame>>::new();
         // Video Scheduler <--> Video Renderer
-        let (vr_port, vr_chan) = stream::<Option<~VideoBuffer>>();
+        let (vr_port, vr_chan) = Chan::<Option<~VideoBuffer>>::new();
         // Audio Decoder <--> Audio Renderer
-        let (ar_port, ar_chan) = stream::<Option<~[u8]>>();
+        let (ar_port, ar_chan) = Chan::<Option<~[u8]>>::new();
 
         self.extractor.get_ref().start(vd_chan, ad_chan);
         self.video_decoder.get_ref().start(vd_port, vs_chan);
@@ -117,10 +110,5 @@ impl MediaPlayer {
         self.video_scheduler.get_ref().start(vs_port, vr_chan);
         self.video_renderer.get_ref().start(vr_port);
         self.audio_renderer.get_ref().start(ar_port);
-
-        self.send_cmd(Start);
-    }
-    pub fn send_cmd(&self, cmd: Command) {
-        self.ctrl_chan.get_ref().send(cmd);
     }
 }

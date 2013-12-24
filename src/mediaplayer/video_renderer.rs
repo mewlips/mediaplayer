@@ -8,7 +8,7 @@ use swscale;
 use util;
 use video_scheduler::VideoBuffer;
 
-struct VideoRenderer {
+pub struct VideoRenderer {
     width: int,
     height: int,
     pix_fmt: avutil::Enum_AVPixelFormat,
@@ -63,17 +63,16 @@ impl VideoRenderer {
                 let height = buffer.height;
                 //debug!("width = {}, height = {}", width, height);
                 screen.with_lock(|pixels| {
-                    pixels.as_mut_buf(|p, _len| {
-                        unsafe {
-                            avcodec::avpicture_fill(transmute(frame_rgb),
-                                                    transmute(p), avutil::AV_PIX_FMT_BGR24,
-                                                    width as c_int, height as c_int);
-                            swscale::sws_scale(sws_ctx, transmute((*frame).data.as_ptr()),
-                                               (*frame).linesize.as_ptr(), 0, (*frame).height,
-                                               transmute((*frame_rgb).data.as_mut_ptr()),
-                                               (*frame_rgb).linesize.as_ptr());
-                        }
-                    });
+                    let ptr = pixels.as_mut_ptr();
+                    unsafe {
+                        avcodec::avpicture_fill(transmute(frame_rgb),
+                                                transmute(ptr), avutil::AV_PIX_FMT_BGR24,
+                                                width as c_int, height as c_int);
+                        swscale::sws_scale(sws_ctx, transmute((*frame).data.as_ptr()),
+                                           (*frame).linesize.as_ptr(), 0, (*frame).height,
+                                           transmute((*frame_rgb).data.as_mut_ptr()),
+                                           (*frame_rgb).linesize.as_ptr());
+                    }
                 });
                 screen.flip();
                 unsafe {

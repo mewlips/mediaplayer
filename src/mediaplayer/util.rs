@@ -4,9 +4,11 @@ use avutil;
 
 pub fn av_strerror(e: i32) -> ~str {
     let mut buf = from_elem(128, 0_u8);
-    buf.as_mut_buf(|p: *mut u8, len: uint| {
-        unsafe { avutil::av_strerror(-(e as c_int), p as *mut i8, len as size_t) };
-    });
+    let len = buf.len();
+    let ptr = buf.as_mut_ptr();
+    unsafe {
+        avutil::av_strerror(-(e as c_int), ptr as *mut i8, len as size_t);
+    }
     buf.to_str()
 }
 

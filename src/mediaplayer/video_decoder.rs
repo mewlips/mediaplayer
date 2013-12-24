@@ -6,7 +6,7 @@ use std::libc::{c_int};
 use std::ptr::{to_mut_unsafe_ptr};
 use ffmpeg_decoder::FFmpegDecoder;
 
-struct VideoDecoder {
+pub struct VideoDecoder {
     decoder: FFmpegDecoder,
     width: int,
     height: int,

@@ -2,7 +2,7 @@ use std::libc::c_int;
 use std::libc;
 use std::cast::transmute;
 
-struct AudioPipe {
+pub struct AudioPipe {
     pipe_input: c_int,
 }
 
