@@ -6,7 +6,7 @@ use std::libc::{c_int};
 use std::ptr::{null,mut_null};
 use swscale;
 use util;
-use video_scheduler::VideoBuffer;
+use video_scheduler::VideoPicture;
 
 pub struct VideoRenderer {
     width: int,
@@ -24,7 +24,7 @@ impl VideoRenderer {
             pix_fmt: pix_fmt,
         }
     }
-    pub fn start(&self, vr_port: Port<Option<~VideoBuffer>>) {
+    pub fn start(&self, vr_port: Port<Option<~VideoPicture>>) {
         let screen = match sdl::video::set_video_mode(
                                             self.width, self.height, 24,
                                             [sdl::video::HWSurface],
@@ -55,12 +55,12 @@ impl VideoRenderer {
     fn render(screen: &sdl::video::Surface,
               frame_rgb: *mut avcodec::AVFrame,
               sws_ctx: *mut swscale::Struct_SwsContext,
-              vr_port: &Port<Option<~VideoBuffer>>) -> bool {
+              vr_port: &Port<Option<~VideoPicture>>) -> bool {
         match vr_port.recv() {
-            Some(ref mut buffer) => {
-                let frame = buffer.frame;
-                let width = buffer.width;
-                let height = buffer.height;
+            Some(ref mut picture) => {
+                let frame = picture.frame;
+                let width = picture.width;
+                let height = picture.height;
                 //debug!("width = {}, height = {}", width, height);
                 screen.with_lock(|pixels| {
                     let ptr = pixels.as_mut_ptr();

@@ -6,7 +6,7 @@ use video_decoder::VideoDecoder;
 use audio_decoder::AudioDecoder;
 use video_renderer::VideoRenderer;
 use audio_renderer::AudioRenderer;
-use video_scheduler::{VideoBuffer,VideoScheduler};
+use video_scheduler::{VideoPicture,VideoScheduler};
 
 enum DataSource {
     UrlSource(url::Url),
@@ -100,7 +100,7 @@ impl MediaPlayer {
         // Video Decoder <--> Video Scheduler
         let (vs_port, vs_chan) = Chan::<Option<*mut avcodec::AVFrame>>::new();
         // Video Scheduler <--> Video Renderer
-        let (vr_port, vr_chan) = Chan::<Option<~VideoBuffer>>::new();
+        let (vr_port, vr_chan) = Chan::<Option<~VideoPicture>>::new();
         // Audio Decoder <--> Audio Renderer
         let (ar_port, ar_chan) = Chan::<Option<~[u8]>>::new();
 

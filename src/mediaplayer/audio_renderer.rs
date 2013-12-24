@@ -1,12 +1,10 @@
 use std::libc::c_int;
-use extra::arc::RWArc;
 use std::os;
 use sdl::audio;
 use audio_pipe::AudioPipe;
 use avcodec;
 use std::cast::transmute;
 use std::libc;
-use util;
 
 pub static SDL_AudioBufferSize: u16 = 1024;
 
@@ -87,7 +85,6 @@ pub struct AudioRenderer {
     codec_ctx: *mut avcodec::AVCodecContext,
     pipe_out: c_int,
     audio_pipe: AudioPipe,
-    chunks: RWArc<~[~[u8]]>,
 }
 
 impl AudioRenderer {
@@ -100,7 +97,6 @@ impl AudioRenderer {
             codec_ctx: codec_ctx.clone(),
             pipe_out: pipe_out,
             audio_pipe: audio_pipe,
-            chunks: RWArc::new(~[]),
         })
     }
     pub fn start(&self, ar_port: Port<Option<~[u8]>>) {
@@ -122,59 +118,31 @@ impl AudioRenderer {
             }
         }
 
-        let chunks_in = self.chunks.clone();
-        let chunks_out = self.chunks.clone();
         let pipe_out = self.pipe_out.clone();
         do spawn {
-            loop {
-                let ok = chunks_in.write(|chunks| {
-                    let chunk = ar_port.recv();
-                    match chunk {
-                        Some(chunk) => {
-                            chunks.push(chunk);
-                            debug!("chunks.len() = {}", chunks.len());
-                            true
-                        }
-                        None => {
-                            false
-                        }
-                    }
-                });
-                if !ok {
-                    break;
-                }
-            }
-            debug!("null chunk recevied");
-        }
-        do spawn {
-            let mut chunk_idx = 0;
             let mut paused = true;
             loop {
-                let writed = chunks_out.read(|chunks| {
-                    if chunk_idx < chunks.len() {
-                        unsafe {
-                            let ptr = transmute(chunks[chunk_idx].as_ptr());
-                            let len = chunks[chunk_idx].len() as u64;
-
-                            let result = libc::funcs::posix88::unistd::write(
-                                            pipe_out, ptr, len);
-                            //println!("ptr {}, pipe_out {}, write {} bytes, result = {}",
-                            //        ptr, pipe_out, len, result);
-                            if result >= 0 {
-                                println!("chunk_idx = {}", chunk_idx);
-                                chunk_idx += 1;
-                                true
-                            } else {
-                                false
+                let chunk = ar_port.recv();
+                match chunk {
+                    Some(chunk) => {
+                        let ptr = unsafe { transmute(chunk.as_ptr()) };
+                        let len = chunk.len() as u64;
+                        let result = unsafe {
+                            libc::funcs::posix88::unistd::write(
+                                pipe_out, ptr, len)
+                        };
+                        if result >= 0 {
+                            if paused {
+                                audio::pause(false);
+                                paused = false;
                             }
+                        } else {
+                            error!("write failed!");
                         }
-                    } else {
-                        false
                     }
-                });
-                if paused && writed {
-                    audio::pause(false);
-                    paused = false;
+                    None => {
+                        break;
+                    }
                 }
             }
         }

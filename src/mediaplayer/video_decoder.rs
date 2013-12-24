@@ -34,17 +34,17 @@ impl VideoDecoder {
         }
     }
     pub fn start(&self, vd_port: Port<Option<*mut avcodec::AVPacket>>,
-                        vr_chan: Chan<Option<*mut avcodec::AVFrame>>) {
+                        vs_chan: Chan<Option<*mut avcodec::AVFrame>>) {
         let codec_ctx = self.decoder.codec_ctx.clone();
         do spawn {
-            while VideoDecoder::decode(codec_ctx, &vd_port, &vr_chan) {
+            while VideoDecoder::decode(codec_ctx, &vd_port, &vs_chan) {
                 ;
             }
         }
     }
     fn decode(codec_ctx: *mut avcodec::AVCodecContext,
               vd_port: &Port<Option<*mut avcodec::AVPacket>>,
-              vr_chan: &Chan<Option<*mut avcodec::AVFrame>>) -> bool {
+              vs_chan: &Chan<Option<*mut avcodec::AVFrame>>) -> bool {
         match vd_port.recv() {
             Some(packet) => {
                 unsafe {
@@ -54,16 +54,17 @@ impl VideoDecoder {
                                                    to_mut_unsafe_ptr(&mut got_frame),
                                                    transmute_immut_unsafe(packet));
                     avcodec::av_free_packet(packet);
+                    //println!("pts = {}, dts = {}", (*packet).pts, (*packet).dts);
                     if got_frame != 0 {
                         //debug!("send frame = {}", frame);
-                        vr_chan.send(Some(frame));
+                        vs_chan.send(Some(frame));
                     }
                 }
                 true
             }
             None => {
                 info!("null packet received");
-                vr_chan.send(None);
+                vs_chan.send(None);
                 false
             }
         }
