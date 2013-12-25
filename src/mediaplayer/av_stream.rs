@@ -30,6 +30,11 @@ impl AVStream {
             (*self.av_stream).index as int
         }
     }
+    pub fn get_time_base(&self) -> avutil::AVRational {
+        unsafe {
+            (*self.av_stream).time_base
+        }
+    }
 }
 
 pub struct AVStreamIterator {
