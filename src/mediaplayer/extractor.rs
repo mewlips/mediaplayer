@@ -147,7 +147,8 @@ impl Extractor {
                 None => {
                 }
             }
-            util::usleep(14_700); // TEMPORARY
+            //util::usleep(14_700); // TEMPORARY
+            util::usleep(13000);
             return true;
         } else {
             info!("end of file");

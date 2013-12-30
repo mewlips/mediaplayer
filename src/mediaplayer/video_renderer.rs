@@ -63,8 +63,7 @@ impl VideoRenderer {
         match vr_port.recv() {
             Some(ref mut picture) => {
                 let frame = picture.frame;
-                let pts = picture.pts;
-                debug!("pts = {}", pts);
+                let video_pts = picture.pts;
                 screen.with_lock(|pixels| {
                     let ptr = pixels.as_mut_ptr();
                     unsafe {
@@ -77,7 +76,25 @@ impl VideoRenderer {
                                            (*frame_rgb).linesize.as_ptr());
                     }
                 });
-                screen.flip();
+                loop {
+                    match as_port.try_recv() {
+                        Some(audio_pts) => {
+                            debug!("audio_pts = {}, video_pts = {}", audio_pts, video_pts);
+                            if audio_pts < video_pts {
+                                println("audio is faster than video. skip flip");
+                                screen.flip();
+                            } else {
+                                println!("video is slower than audio. flip!");
+                                screen.flip();
+                                break;
+                            }
+                        }
+                        None => {
+                            break;
+                        }
+                    }
+                    util::usleep(1000);
+                }
                 unsafe {
                     avcodec::avcodec_free_frame(transmute(&frame));
                 }
