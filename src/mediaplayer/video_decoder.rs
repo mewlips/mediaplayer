@@ -7,12 +7,25 @@ use std::ptr::{to_mut_unsafe_ptr};
 use ffmpeg_decoder::{DecoderUserData,FFmpegDecoder};
 use std::mem::size_of;
 
+pub struct VideoData {
+    frame: *mut avcodec::AVFrame,
+    pts: f64,
+}
+
+impl VideoData {
+    pub fn new(frame: *mut avcodec::AVFrame, pts: f64) -> VideoData {
+        VideoData {
+            frame: frame,
+            pts: pts
+        }
+    }
+}
+
 pub struct VideoDecoder {
     decoder: FFmpegDecoder,
     width: int,
     height: int,
     pix_fmt: avutil::Enum_AVPixelFormat,
-    time_base: avutil::AVRational,
 }
 
 impl VideoDecoder {
@@ -23,7 +36,6 @@ impl VideoDecoder {
                 let width = codec_ctx.width as int;
                 let height = codec_ctx.height as int;
                 let pix_fmt = codec_ctx.pix_fmt;
-                let time_base = video_stream.get_time_base();
                 unsafe {
                     (*decoder.codec_ctx).get_buffer = get_buffer;
                     (*decoder.codec_ctx).release_buffer = release_buffer;
@@ -33,7 +45,6 @@ impl VideoDecoder {
                     width: width,
                     height: height,
                     pix_fmt: pix_fmt,
-                    time_base: time_base
                 })
             }
             None => {
@@ -42,11 +53,11 @@ impl VideoDecoder {
         }
     }
     pub fn start(&self, vd_port: Port<Option<*mut avcodec::AVPacket>>,
-                        vs_chan: Chan<Option<*mut avcodec::AVFrame>>) {
+                        vr_chan: Chan<Option<~VideoData>>) {
         let codec_ctx = self.decoder.codec_ctx.clone();
-        let time_base = self.time_base;
+        let time_base = self.decoder.time_base.clone();
         do spawn {
-            while VideoDecoder::decode(codec_ctx, time_base, &vd_port, &vs_chan) {
+            while VideoDecoder::decode(codec_ctx, time_base, &vd_port, &vr_chan) {
                 ;
             }
         }
@@ -54,7 +65,7 @@ impl VideoDecoder {
     fn decode(codec_ctx: *mut avcodec::AVCodecContext,
               time_base: avutil::AVRational,
               vd_port: &Port<Option<*mut avcodec::AVPacket>>,
-              vs_chan: &Chan<Option<*mut avcodec::AVFrame>>) -> bool {
+              vr_chan: &Chan<Option<~VideoData>>) -> bool {
         match vd_port.recv() {
             Some(packet) => {
                 unsafe {
@@ -80,19 +91,19 @@ impl VideoDecoder {
                         pts = 0f64;
                     }
                     pts = ((pts as f64) * avutil::av_q2d(time_base)) as f64;
-                    println!("pts = {}", pts);
+                    //println!("pts = {}", pts);
                     avcodec::av_free_packet(packet);
                     //println!("pts = {}, dts = {}", (*packet).pts, (*packet).dts);
                     if got_frame != 0 {
                         //debug!("send frame = {}", frame);
-                        vs_chan.send(Some(frame));
+                        vr_chan.send(Some(~VideoData::new(frame,pts)));
                     }
                 }
                 true
             }
             None => {
                 info!("null packet received");
-                vs_chan.send(None);
+                vr_chan.send(None);
                 false
             }
         }

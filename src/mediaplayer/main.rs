@@ -19,7 +19,6 @@ mod util;
 mod ffmpeg_decoder;
 mod video_decoder;
 mod audio_decoder;
-mod video_scheduler;
 mod video_renderer;
 mod audio_renderer;
 mod audio_pipe;

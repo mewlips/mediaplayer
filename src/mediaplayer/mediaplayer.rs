@@ -2,11 +2,10 @@ use extra::url;
 use extractor::Extractor;
 use avcodec;
 use avutil;
-use video_decoder::VideoDecoder;
-use audio_decoder::AudioDecoder;
+use video_decoder::{VideoData,VideoDecoder};
+use audio_decoder::{AudioData,AudioDecoder};
 use video_renderer::VideoRenderer;
 use audio_renderer::AudioRenderer;
-use video_scheduler::{VideoPicture,VideoScheduler};
 
 enum DataSource {
     UrlSource(url::Url),
@@ -23,7 +22,6 @@ pub struct MediaPlayer {
     extractor: Option<Extractor>,
     video_decoder: Option<VideoDecoder>,
     audio_decoder: Option<AudioDecoder>,
-    video_scheduler: Option<VideoScheduler>,
     video_renderer: Option<VideoRenderer>,
     audio_renderer: Option<AudioRenderer>,
 }
@@ -35,7 +33,6 @@ impl MediaPlayer {
             extractor: None,
             video_decoder: None,
             audio_decoder: None,
-            video_scheduler: None,
             video_renderer: None,
             audio_renderer: None,
         }
@@ -72,7 +69,6 @@ impl MediaPlayer {
                 let width = video_decoder.width;
                 let height = video_decoder.height;
                 let pix_fmt = video_decoder.pix_fmt;
-                self.video_scheduler = Some(VideoScheduler::new(5));
                 self.video_renderer = Some(VideoRenderer::new(width, height, pix_fmt));
             }
             None => {
@@ -93,22 +89,22 @@ impl MediaPlayer {
         true
     }
     pub fn start(&mut self) {
-        // Extrator <--> Video Decoder
+        // Extrator --> Video Decoder
         let (vd_port, vd_chan) = Chan::<Option<*mut avcodec::AVPacket>>::new();
-        // Extractor <--> Audio Decoder
+        // Extractor --> Audio Decoder
         let (ad_port, ad_chan) = Chan::<Option<*mut avcodec::AVPacket>>::new();
-        // Video Decoder <--> Video Scheduler
-        let (vs_port, vs_chan) = Chan::<Option<*mut avcodec::AVFrame>>::new();
-        // Video Scheduler <--> Video Renderer
-        let (vr_port, vr_chan) = Chan::<Option<~VideoPicture>>::new();
-        // Audio Decoder <--> Audio Renderer
-        let (ar_port, ar_chan) = Chan::<Option<~[u8]>>::new();
+        // Video Scheduler --> Video Renderer
+        let (vr_port, vr_chan) = Chan::<Option<~VideoData>>::new();
+        // Audio Decoder --> Audio Renderer
+        let (ar_port, ar_chan) = Chan::<Option<~AudioData>>::new();
+
+        // Audio Renderer -- PTS --> Video Renderer
+        let (as_port, as_chan) = Chan::<f64>::new();
 
         self.extractor.get_ref().start(vd_chan, ad_chan);
-        self.video_decoder.get_ref().start(vd_port, vs_chan);
+        self.video_decoder.get_ref().start(vd_port, vr_chan);
         self.audio_decoder.get_ref().start(ad_port, ar_chan);
-        self.video_scheduler.get_ref().start(vs_port, vr_chan);
-        self.video_renderer.get_ref().start(vr_port);
-        self.audio_renderer.get_ref().start(ar_port);
+        self.video_renderer.get_ref().start(vr_port, as_port);
+        self.audio_renderer.get_ref().start(ar_port, as_chan);
     }
 }

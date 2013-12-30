@@ -5,6 +5,7 @@ use audio_pipe::AudioPipe;
 use avcodec;
 use std::cast::transmute;
 use std::libc;
+use audio_decoder::AudioData;
 
 pub static SDL_AudioBufferSize: u16 = 1024;
 
@@ -99,7 +100,7 @@ impl AudioRenderer {
             audio_pipe: audio_pipe,
         })
     }
-    pub fn start(&self, ar_port: Port<Option<~[u8]>>) {
+    pub fn start(&self, ar_port: Port<Option<~AudioData>>, as_chan: Chan<f64>) {
         let wanted_spec =
             audio_alt::DesiredAudioSpec {
                 freq: unsafe { (*self.codec_ctx).sample_rate },
@@ -122,11 +123,13 @@ impl AudioRenderer {
         do spawn {
             let mut paused = true;
             loop {
-                let chunk = ar_port.recv();
-                match chunk {
-                    Some(chunk) => {
-                        let ptr = unsafe { transmute(chunk.as_ptr()) };
-                        let len = chunk.len() as u64;
+                let data = ar_port.recv();
+                match data {
+                    Some(ref data) => {
+                        let ptr = unsafe { transmute(data.chunk.as_ptr()) };
+                        let len = data.chunk.len() as u64;
+                        as_chan.send(data.pts.clone());
+                        println!("audio pts = {}", data.pts);
                         let result = unsafe {
                             libc::funcs::posix88::unistd::write(
                                 pipe_out, ptr, len)

@@ -6,7 +6,7 @@ use std::libc::{c_int};
 use std::ptr::{null,mut_null};
 use swscale;
 use util;
-use video_scheduler::VideoPicture;
+use video_decoder::VideoData;
 
 pub struct VideoRenderer {
     width: int,
@@ -24,7 +24,8 @@ impl VideoRenderer {
             pix_fmt: pix_fmt,
         }
     }
-    pub fn start(&self, vr_port: Port<Option<~VideoPicture>>) {
+    pub fn start(&self, vr_port: Port<Option<~VideoData>>,
+                 as_port: Port<f64>) {
         let screen = match sdl::video::set_video_mode(
                                             self.width, self.height, 24,
                                             [sdl::video::HWSurface],
@@ -46,7 +47,8 @@ impl VideoRenderer {
         let height = self.height.clone();
         do spawn {
             while VideoRenderer::render(screen, frame_rgb.clone(),
-                                        sws_ctx.clone(), &vr_port) {
+                                        width, height,
+                                        sws_ctx.clone(), &vr_port, &as_port) {
                 ;
             }
         }
@@ -54,14 +56,15 @@ impl VideoRenderer {
 
     fn render(screen: &sdl::video::Surface,
               frame_rgb: *mut avcodec::AVFrame,
+              width: int, height: int,
               sws_ctx: *mut swscale::Struct_SwsContext,
-              vr_port: &Port<Option<~VideoPicture>>) -> bool {
+              vr_port: &Port<Option<~VideoData>>,
+              as_port: &Port<f64>) -> bool {
         match vr_port.recv() {
             Some(ref mut picture) => {
                 let frame = picture.frame;
-                let width = picture.width;
-                let height = picture.height;
-                //debug!("width = {}, height = {}", width, height);
+                let pts = picture.pts;
+                debug!("pts = {}", pts);
                 screen.with_lock(|pixels| {
                     let ptr = pixels.as_mut_ptr();
                     unsafe {

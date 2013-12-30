@@ -16,6 +16,7 @@ pub struct FFmpegDecoder {
     codec: *avcodec::AVCodec,
     decoder: *mut avcodec::AVCodec,
     options: *mut avutil::AVDictionary,
+    time_base: avutil::AVRational
 }
 
 impl FFmpegDecoder {
@@ -51,12 +52,15 @@ impl FFmpegDecoder {
             (*codec_ctx).opaque = avutil::av_malloc(size_of::<DecoderUserData>() as u64);
         }
 
+        let time_base = av_stream.get_time_base();
+
         debug!("VideoDecoder::new() end");
         Some(FFmpegDecoder {
             codec_ctx: codec_ctx,
             codec: codec,
             decoder: decoder,
             options: options,
+            time_base: time_base,
         })
     }
 }
