@@ -6,7 +6,7 @@ use avcodec;
 use std::cast::transmute;
 use std::libc;
 use audio_decoder::AudioData;
-use component_manager::Component;
+use component_manager::{Component,ComponentId,Message};
 
 pub static SDL_AudioBufferSize: u16 = 1024;
 
@@ -84,7 +84,8 @@ mod audio_alt {
 
 
 pub struct AudioRenderer {
-    component_id: int,
+    component_id: Option<ComponentId>,
+    chan: Option<SharedChan<Message>>,
     codec_ctx: *mut avcodec::AVCodecContext,
     pipe_out: c_int,
     audio_pipe: AudioPipe,
@@ -97,7 +98,8 @@ impl AudioRenderer {
 
         let audio_pipe = AudioPipe::new(pipe_input);
         Some(AudioRenderer {
-            component_id: -1,
+            component_id: None,
+            chan: None,
             codec_ctx: codec_ctx.clone(),
             pipe_out: pipe_out,
             audio_pipe: audio_pipe,
@@ -122,6 +124,8 @@ impl AudioRenderer {
                 return;
             }
         }
+
+        debug!("AudioRenderer::start() 2");
 
         let pipe_out = self.pipe_out.clone();
         do spawn {
@@ -161,13 +165,16 @@ impl Drop for AudioRenderer {
 }
 
 impl Component for AudioRenderer {
-    fn set_id(&mut self, id: int) {
-        self.component_id = id;
+    fn set_id(&mut self, id: ComponentId) {
+        self.component_id = Some(id);
     }
-    fn get_id(&self) -> int {
+    fn get_id(&self) -> Option<ComponentId> {
         self.component_id
     }
     fn get_name(&self) -> &str {
         "AudioRenderer"
+    }
+    fn set_chan(&mut self, chan: SharedChan<Message>) {
+        self.chan = Some(chan);
     }
 }

@@ -7,6 +7,7 @@ use audio_decoder::{AudioData,AudioDecoder};
 use video_renderer::VideoRenderer;
 use audio_renderer::AudioRenderer;
 use component_manager::{Component,ComponentManager};
+use util;
 
 enum DataSource {
     UrlSource(url::Url),
@@ -107,10 +108,12 @@ impl<'a> MediaPlayer<'a> {
         // Audio Decoder --> Audio Renderer
         let (ar_port, ar_chan) = Chan::<Option<~AudioData>>::new();
 
+        self.component_mgr.start();
         self.video_decoder.get_ref().start(vd_port, vr_chan);
-        self.audio_decoder.get_ref().start(ad_port, ar_chan);
+        self.audio_decoder.get_mut_ref().start(ad_port, ar_chan);
         self.extractor.get_ref().start(vd_chan, ad_chan);
         self.video_renderer.get_ref().start(vr_port);
         self.audio_renderer.get_ref().start(ar_port);
+
     }
 }

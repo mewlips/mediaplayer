@@ -6,10 +6,11 @@ use std::ptr::mut_null;
 use util;
 use std::mem::size_of;
 use std::cast::{transmute};
-use component_manager::Component;
+use component_manager::{Component,ComponentId,Message};
 
 pub struct Extractor {
-    component_id: int,
+    component_id: Option<ComponentId>,
+    chan: Option<SharedChan<Message>>,
     priv fmt_ctx: *mut avformat::AVFormatContext,
     streams: ~[AVStream],
     video_index: Option<int>,
@@ -19,7 +20,8 @@ pub struct Extractor {
 impl Extractor {
     pub fn new(path: &Path) -> Option<Extractor> {
         let mut extractor = Extractor {
-            component_id: -1,
+            component_id: None,
+            chan: None,
             fmt_ctx: unsafe { avformat::avformat_alloc_context() },
             streams: ~[],
             video_index: None,
@@ -167,13 +169,16 @@ impl Drop for Extractor {
 }
 
 impl Component for Extractor {
-    fn set_id(&mut self, id: int) {
-        self.component_id = id;
+    fn set_id(&mut self, id: ComponentId) {
+        self.component_id = Some(id);
     }
-    fn get_id(&self) -> int {
+    fn get_id(&self) -> Option<ComponentId> {
         self.component_id
     }
     fn get_name(&self) -> &str {
         "Extractor"
+    }
+    fn set_chan(&mut self, chan: SharedChan<Message>) {
+        self.chan = Some(chan);
     }
 }

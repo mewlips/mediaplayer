@@ -6,7 +6,7 @@ use std::cast::{transmute_immut_unsafe};
 use std::libc::c_int;
 use std::ptr::{mut_null,to_mut_unsafe_ptr};
 use std::vec;
-use component_manager::Component;
+use component_manager::{Component,ComponentId,Message,MsgPts};
 
 pub struct AudioData {
     chunk: ~[u8],
@@ -23,7 +23,8 @@ impl AudioData {
 }
 
 pub struct AudioDecoder {
-    component_id: int,
+    component_id: Option<ComponentId>,
+    chan: Option<SharedChan<Message>>,
     decoder: FFmpegDecoder,
 }
 
@@ -32,7 +33,8 @@ impl AudioDecoder {
         match FFmpegDecoder::new(audio_stream) {
             Some(decoder) => {
                 Some(AudioDecoder {
-                    component_id: -1,
+                    component_id: None,
+                    chan: None,
                     decoder: decoder,
                 })
             }
@@ -41,8 +43,8 @@ impl AudioDecoder {
             }
         }
     }
-    pub fn start(&self, ad_port: Port<Option<*mut avcodec::AVPacket>>,
-                        ar_chan: Chan<Option<~AudioData>>) {
+    pub fn start(&mut self, ad_port: Port<Option<*mut avcodec::AVPacket>>,
+                            ar_chan: Chan<Option<~AudioData>>) {
         let codec_ctx = self.decoder.codec_ctx.clone();
         unsafe {
             println!("sample_fmt = {}, {}", (*codec_ctx).sample_fmt, avutil::AV_SAMPLE_FMT_S16P);
@@ -52,14 +54,18 @@ impl AudioDecoder {
         }
         let time_base = self.decoder.time_base.clone();
 
+        let component_id = self.get_id().unwrap();
+        let chan = self.chan.take().unwrap();
         do spawn {
-            while AudioDecoder::decode(codec_ctx, time_base,
+            while AudioDecoder::decode(component_id, &chan,
+                                       codec_ctx, time_base,
                                        &ad_port, &ar_chan) {
                 ;
             }
         }
     }
-    fn decode(codec_ctx: *mut avcodec::AVCodecContext,
+    fn decode(component_id: ComponentId, chan: &SharedChan<Message>,
+              codec_ctx: *mut avcodec::AVCodecContext,
               time_base: avutil::AVRational,
               ad_port: &Port<Option<*mut avcodec::AVPacket>>,
               ar_chan: &Chan<Option<~AudioData>>) -> bool {
@@ -72,6 +78,7 @@ impl AudioDecoder {
                         codec_ctx, frame, to_mut_unsafe_ptr(&mut got_frame),
                         transmute_immut_unsafe(packet));
                     let pts = (*packet).pts as f64 * avutil::av_q2d(time_base);
+                    chan.send(Message(component_id.clone(), MsgPts(pts.clone())));
                     avcodec::av_free_packet(packet);
                     if got_frame != 0 {
                         let data_size = avutil::av_samples_get_buffer_size(
@@ -101,14 +108,17 @@ impl Drop for AudioDecoder {
 }
 
 impl Component for AudioDecoder {
-    fn set_id(&mut self, id: int) {
-        self.component_id = id;
+    fn set_id(&mut self, id: ComponentId) {
+        self.component_id = Some(id);
     }
-    fn get_id(&self) -> int {
+    fn get_id(&self) -> Option<ComponentId> {
         self.component_id
     }
     fn get_name(&self) -> &str {
         "AudioDecoder"
+    }
+    fn set_chan(&mut self, chan: SharedChan<Message>) {
+        self.chan = Some(chan);
     }
 }
 

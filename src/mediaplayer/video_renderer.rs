@@ -7,10 +7,11 @@ use std::ptr::{null,mut_null};
 use swscale;
 use util;
 use video_decoder::VideoData;
-use component_manager::Component;
+use component_manager::{Component,ComponentId,Message};
 
 pub struct VideoRenderer {
-    component_id: int,
+    component_id: Option<ComponentId>,
+    chan: Option<SharedChan<Message>>,
     width: int,
     height: int,
     pix_fmt: avutil::Enum_AVPixelFormat,
@@ -21,7 +22,8 @@ impl VideoRenderer {
             -> VideoRenderer {
         debug!("pix_fmt = {}", pix_fmt as int);
         VideoRenderer {
-            component_id: -1,
+            component_id: None,
+            chan: None,
             width: width,
             height: height,
             pix_fmt: pix_fmt,
@@ -98,13 +100,16 @@ impl Drop for VideoRenderer {
 }
 
 impl Component for VideoRenderer {
-    fn set_id(&mut self, id: int) {
-        self.component_id = id;
+    fn set_id(&mut self, id: ComponentId) {
+        self.component_id = Some(id);
     }
-    fn get_id(&self) -> int {
+    fn get_id(&self) -> Option<ComponentId> {
         self.component_id
     }
     fn get_name(&self) -> &str {
         "VideoRenderer"
+    }
+    fn set_chan(&mut self, chan: SharedChan<Message>) {
+        self.chan = Some(chan);
     }
 }

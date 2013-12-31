@@ -6,7 +6,7 @@ use std::libc::{c_int};
 use std::ptr::{to_mut_unsafe_ptr};
 use ffmpeg_decoder::{DecoderUserData,FFmpegDecoder};
 use std::mem::size_of;
-use component_manager::Component;
+use component_manager::{Component,ComponentId,Message};
 
 pub struct VideoData {
     frame: *mut avcodec::AVFrame,
@@ -23,7 +23,8 @@ impl VideoData {
 }
 
 pub struct VideoDecoder {
-    component_id: int,
+    component_id: Option<ComponentId>,
+    chan: Option<SharedChan<Message>>,
     decoder: FFmpegDecoder,
     width: int,
     height: int,
@@ -43,7 +44,8 @@ impl VideoDecoder {
                     (*decoder.codec_ctx).release_buffer = release_buffer;
                 }
                 Some(VideoDecoder {
-                    component_id: -1,
+                    component_id: None,
+                    chan: None,
                     decoder: decoder,
                     width: width,
                     height: height,
@@ -121,14 +123,17 @@ impl Drop for VideoDecoder {
 }
 
 impl Component for VideoDecoder {
-    fn set_id(&mut self, id: int) {
-        self.component_id = id;
+    fn set_id(&mut self, id: ComponentId) {
+        self.component_id = Some(id);
     }
-    fn get_id(&self) -> int {
+    fn get_id(&self) -> Option<ComponentId> {
         self.component_id
     }
     fn get_name(&self) -> &str {
         "VideoDecoder"
+    }
+    fn set_chan(&mut self, chan: SharedChan<Message>) {
+        self.chan = Some(chan);
     }
 }
 
