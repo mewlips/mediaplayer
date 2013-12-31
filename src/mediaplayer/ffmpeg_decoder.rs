@@ -21,7 +21,6 @@ pub struct FFmpegDecoder {
 
 impl FFmpegDecoder {
     pub fn new(av_stream: &AVStream) -> Option<FFmpegDecoder> {
-        debug!("VideoDecoder::new() start");
         let codec_ctx = unsafe {
             (*av_stream.av_stream).codec
         };
@@ -54,7 +53,6 @@ impl FFmpegDecoder {
 
         let time_base = av_stream.get_time_base();
 
-        debug!("VideoDecoder::new() end");
         Some(FFmpegDecoder {
             codec_ctx: codec_ctx,
             codec: codec,

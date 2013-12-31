@@ -6,6 +6,7 @@ use avcodec;
 use std::cast::transmute;
 use std::libc;
 use audio_decoder::AudioData;
+use component_manager::Component;
 
 pub static SDL_AudioBufferSize: u16 = 1024;
 
@@ -83,6 +84,7 @@ mod audio_alt {
 
 
 pub struct AudioRenderer {
+    component_id: int,
     codec_ctx: *mut avcodec::AVCodecContext,
     pipe_out: c_int,
     audio_pipe: AudioPipe,
@@ -95,12 +97,14 @@ impl AudioRenderer {
 
         let audio_pipe = AudioPipe::new(pipe_input);
         Some(AudioRenderer {
+            component_id: -1,
             codec_ctx: codec_ctx.clone(),
             pipe_out: pipe_out,
             audio_pipe: audio_pipe,
         })
     }
-    pub fn start(&self, ar_port: Port<Option<~AudioData>>, as_chan: Chan<f64>) {
+    pub fn start(&self, ar_port: Port<Option<~AudioData>>) {
+        debug!("AudioRenderer::start()");
         let wanted_spec =
             audio_alt::DesiredAudioSpec {
                 freq: unsafe { (*self.codec_ctx).sample_rate },
@@ -128,8 +132,6 @@ impl AudioRenderer {
                     Some(ref data) => {
                         let ptr = unsafe { transmute(data.chunk.as_ptr()) };
                         let len = data.chunk.len() as u64;
-                        as_chan.send(data.pts.clone());
-                        println!("audio pts = {}", data.pts);
                         let result = unsafe {
                             libc::funcs::posix88::unistd::write(
                                 pipe_out, ptr, len)
@@ -155,5 +157,17 @@ impl AudioRenderer {
 impl Drop for AudioRenderer {
     fn drop(&mut self) {
         debug!("AudioRenderer::drop()");
+    }
+}
+
+impl Component for AudioRenderer {
+    fn set_id(&mut self, id: int) {
+        self.component_id = id;
+    }
+    fn get_id(&self) -> int {
+        self.component_id
+    }
+    fn get_name(&self) -> &str {
+        "AudioRenderer"
     }
 }

@@ -22,6 +22,8 @@ mod audio_decoder;
 mod video_renderer;
 mod audio_renderer;
 mod audio_pipe;
+mod clock;
+mod component_manager;
 
 pub fn init() -> bool {
     unsafe {

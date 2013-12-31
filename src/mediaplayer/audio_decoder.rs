@@ -6,6 +6,7 @@ use std::cast::{transmute_immut_unsafe};
 use std::libc::c_int;
 use std::ptr::{mut_null,to_mut_unsafe_ptr};
 use std::vec;
+use component_manager::Component;
 
 pub struct AudioData {
     chunk: ~[u8],
@@ -22,6 +23,7 @@ impl AudioData {
 }
 
 pub struct AudioDecoder {
+    component_id: int,
     decoder: FFmpegDecoder,
 }
 
@@ -30,6 +32,7 @@ impl AudioDecoder {
         match FFmpegDecoder::new(audio_stream) {
             Some(decoder) => {
                 Some(AudioDecoder {
+                    component_id: -1,
                     decoder: decoder,
                 })
             }
@@ -90,3 +93,22 @@ impl AudioDecoder {
         }
     }
 }
+
+impl Drop for AudioDecoder {
+    fn drop(&mut self) {
+        debug!("AudioDecoder::drop()");
+    }
+}
+
+impl Component for AudioDecoder {
+    fn set_id(&mut self, id: int) {
+        self.component_id = id;
+    }
+    fn get_id(&self) -> int {
+        self.component_id
+    }
+    fn get_name(&self) -> &str {
+        "AudioDecoder"
+    }
+}
+

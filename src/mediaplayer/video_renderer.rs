@@ -7,8 +7,10 @@ use std::ptr::{null,mut_null};
 use swscale;
 use util;
 use video_decoder::VideoData;
+use component_manager::Component;
 
 pub struct VideoRenderer {
+    component_id: int,
     width: int,
     height: int,
     pix_fmt: avutil::Enum_AVPixelFormat,
@@ -19,13 +21,13 @@ impl VideoRenderer {
             -> VideoRenderer {
         debug!("pix_fmt = {}", pix_fmt as int);
         VideoRenderer {
+            component_id: -1,
             width: width,
             height: height,
             pix_fmt: pix_fmt,
         }
     }
-    pub fn start(&self, vr_port: Port<Option<~VideoData>>,
-                 as_port: Port<f64>) {
+    pub fn start(&self, vr_port: Port<Option<~VideoData>>) {
         let screen = match sdl::video::set_video_mode(
                                             self.width, self.height, 24,
                                             [sdl::video::HWSurface],
@@ -48,7 +50,7 @@ impl VideoRenderer {
         do spawn {
             while VideoRenderer::render(screen, frame_rgb.clone(),
                                         width, height,
-                                        sws_ctx.clone(), &vr_port, &as_port) {
+                                        sws_ctx.clone(), &vr_port) {
                 ;
             }
         }
@@ -58,8 +60,7 @@ impl VideoRenderer {
               frame_rgb: *mut avcodec::AVFrame,
               width: int, height: int,
               sws_ctx: *mut swscale::Struct_SwsContext,
-              vr_port: &Port<Option<~VideoData>>,
-              as_port: &Port<f64>) -> bool {
+              vr_port: &Port<Option<~VideoData>>) -> bool {
         match vr_port.recv() {
             Some(ref mut picture) => {
                 let frame = picture.frame;
@@ -76,25 +77,7 @@ impl VideoRenderer {
                                            (*frame_rgb).linesize.as_ptr());
                     }
                 });
-                loop {
-                    match as_port.try_recv() {
-                        Some(audio_pts) => {
-                            debug!("audio_pts = {}, video_pts = {}", audio_pts, video_pts);
-                            if audio_pts < video_pts {
-                                println("audio is faster than video. skip flip");
-                                screen.flip();
-                            } else {
-                                println!("video is slower than audio. flip!");
-                                screen.flip();
-                                break;
-                            }
-                        }
-                        None => {
-                            break;
-                        }
-                    }
-                    util::usleep(1000);
-                }
+                screen.flip();
                 unsafe {
                     avcodec::avcodec_free_frame(transmute(&frame));
                 }
@@ -111,5 +94,17 @@ impl VideoRenderer {
 impl Drop for VideoRenderer {
     fn drop(&mut self) {
         debug!("VideoRenderer::drop()");
+    }
+}
+
+impl Component for VideoRenderer {
+    fn set_id(&mut self, id: int) {
+        self.component_id = id;
+    }
+    fn get_id(&self) -> int {
+        self.component_id
+    }
+    fn get_name(&self) -> &str {
+        "VideoRenderer"
     }
 }

@@ -6,6 +6,7 @@ use std::libc::{c_int};
 use std::ptr::{to_mut_unsafe_ptr};
 use ffmpeg_decoder::{DecoderUserData,FFmpegDecoder};
 use std::mem::size_of;
+use component_manager::Component;
 
 pub struct VideoData {
     frame: *mut avcodec::AVFrame,
@@ -22,6 +23,7 @@ impl VideoData {
 }
 
 pub struct VideoDecoder {
+    component_id: int,
     decoder: FFmpegDecoder,
     width: int,
     height: int,
@@ -41,6 +43,7 @@ impl VideoDecoder {
                     (*decoder.codec_ctx).release_buffer = release_buffer;
                 }
                 Some(VideoDecoder {
+                    component_id: -1,
                     decoder: decoder,
                     width: width,
                     height: height,
@@ -57,7 +60,8 @@ impl VideoDecoder {
         let codec_ctx = self.decoder.codec_ctx.clone();
         let time_base = self.decoder.time_base.clone();
         do spawn {
-            while VideoDecoder::decode(codec_ctx, time_base, &vd_port, &vr_chan) {
+            while VideoDecoder::decode(codec_ctx, time_base,
+                                       &vd_port, &vr_chan) {
                 ;
             }
         }
@@ -107,6 +111,24 @@ impl VideoDecoder {
                 false
             }
         }
+    }
+}
+
+impl Drop for VideoDecoder {
+    fn drop(&mut self) {
+        debug!("VideoDecoder::drop()");
+    }
+}
+
+impl Component for VideoDecoder {
+    fn set_id(&mut self, id: int) {
+        self.component_id = id;
+    }
+    fn get_id(&self) -> int {
+        self.component_id
+    }
+    fn get_name(&self) -> &str {
+        "VideoDecoder"
     }
 }
 

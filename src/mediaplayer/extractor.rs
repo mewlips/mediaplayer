@@ -6,8 +6,10 @@ use std::ptr::mut_null;
 use util;
 use std::mem::size_of;
 use std::cast::{transmute};
+use component_manager::Component;
 
 pub struct Extractor {
+    component_id: int,
     priv fmt_ctx: *mut avformat::AVFormatContext,
     streams: ~[AVStream],
     video_index: Option<int>,
@@ -17,6 +19,7 @@ pub struct Extractor {
 impl Extractor {
     pub fn new(path: &Path) -> Option<Extractor> {
         let mut extractor = Extractor {
+            component_id: -1,
             fmt_ctx: unsafe { avformat::avformat_alloc_context() },
             streams: ~[],
             video_index: None,
@@ -95,7 +98,6 @@ impl Extractor {
     pub fn start(&self,
                  vd_chan: Chan<Option<*mut avcodec::AVPacket>>,
                  ad_chan: Chan<Option<*mut avcodec::AVPacket>>) {
-        debug!("Extractor::start()");
         let fmt_ctx = self.fmt_ctx.clone();
         let video_index = self.video_index.clone();
         let audio_index = self.audio_index.clone();
@@ -161,5 +163,17 @@ impl Extractor {
 impl Drop for Extractor {
     fn drop(&mut self) {
         debug!("Extractor::drop()");
+    }
+}
+
+impl Component for Extractor {
+    fn set_id(&mut self, id: int) {
+        self.component_id = id;
+    }
+    fn get_id(&self) -> int {
+        self.component_id
+    }
+    fn get_name(&self) -> &str {
+        "Extractor"
     }
 }
