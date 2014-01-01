@@ -108,21 +108,12 @@ impl MediaPlayer {
         true
     }
     pub fn start(&mut self) {
-        // Extrator --> Video Decoder
-        let (vd_port, vd_chan) = Chan::<Option<*mut avcodec::AVPacket>>::new();
-        // Extractor --> Audio Decoder
-        let (ad_port, ad_chan) = Chan::<Option<*mut avcodec::AVPacket>>::new();
-        // Video Scheduler --> Video Renderer
-        let (vr_port, vr_chan) = Chan::<Option<~VideoData>>::new();
-        // Audio Decoder --> Audio Renderer
-        let (ar_port, ar_chan) = Chan::<Option<~AudioData>>::new();
-
-        self.extractor.get_mut_ref().start(vd_chan, ad_chan);
-        self.video_decoder.get_mut_ref().start(vd_port, vr_chan);
-        self.audio_decoder.get_mut_ref().start(ad_port, ar_chan);
+        self.extractor.get_mut_ref().start();
+        self.video_decoder.get_mut_ref().start();
+        self.audio_decoder.get_mut_ref().start();
         self.clock.get_mut_ref().start();
-        self.video_renderer.get_mut_ref().start(vr_port);
-        self.audio_renderer.get_mut_ref().start(ar_port);
+        self.video_renderer.get_mut_ref().start();
+        self.audio_renderer.get_mut_ref().start();
 
         self.component_mgr.start();
     }

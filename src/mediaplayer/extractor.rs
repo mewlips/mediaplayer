@@ -7,7 +7,9 @@ use util;
 use std::mem::size_of;
 use std::cast::{transmute};
 use component_manager::{Component,ComponentStruct,ExtractorComponent,
-                        ManagerComponent,Message,MsgStart,MsgExtract};
+                        VideoDecoderComponent,AudioDecoderComponent,
+                        ManagerComponent,Message,MsgStart,MsgExtract,
+                        MsgError,MsgEOF,MsgPacketData};
 
 pub struct Extractor {
     component: Option<ComponentStruct>,
@@ -96,9 +98,7 @@ impl Extractor {
         }
         None
     }
-    pub fn start(&mut self,
-                 vd_chan: Chan<Option<*mut avcodec::AVPacket>>,
-                 ad_chan: Chan<Option<*mut avcodec::AVPacket>>) {
+    pub fn start(&mut self) {
         let fmt_ctx = self.fmt_ctx.clone();
         let video_index = self.video_index.clone();
         let audio_index = self.audio_index.clone();
@@ -108,8 +108,7 @@ impl Extractor {
                 Message { from: ManagerComponent, msg: MsgStart, .. } => {
                     info!("start Extractor");
                     while Extractor::pump(&component, fmt_ctx,
-                                          video_index, audio_index,
-                                          &vd_chan, &ad_chan) {
+                                          video_index, audio_index) {
                         match component.recv() {
                             Message { from, to, msg: MsgExtract } => {
                                 //debug!("MsgExtract");
@@ -128,16 +127,13 @@ impl Extractor {
     }
     fn pump(component: &ComponentStruct,
             fmt_ctx: *mut avformat::AVFormatContext,
-            video_index: Option<int>, audio_index: Option<int>,
-            vd_chan: &Chan<Option<*mut avcodec::AVPacket>>,
-            ad_chan: &Chan<Option<*mut avcodec::AVPacket>>) -> bool {
+            video_index: Option<int>, audio_index: Option<int>) -> bool {
         let size = size_of::<avcodec::AVPacket>();
         let packet: *mut avcodec::AVPacket = unsafe {
             transmute(avutil::av_malloc(size as u64))
         };
         if packet.is_null() {
-            error!("alloctaion failed");
-            vd_chan.send(None);
+            component.send(ManagerComponent, MsgError(~"Allocation failed"));
             return false;
         }
 
@@ -152,7 +148,7 @@ impl Extractor {
             match video_index {
                 Some(video_index) => {
                     if video_index == stream_index {
-                        vd_chan.send(Some(packet));
+                        component.send(VideoDecoderComponent, MsgPacketData(packet));
                     }
                 }
                 None => {
@@ -161,18 +157,16 @@ impl Extractor {
             match audio_index {
                 Some(audio_index) => {
                     if audio_index == stream_index {
-                        ad_chan.send(Some(packet));
+                        component.send(AudioDecoderComponent, MsgPacketData(packet));
                     }
                 }
                 None => {
                 }
             }
-            //util::usleep(14_700); // TEMPORARY
-            //util::usleep(13000);
             return true;
         } else {
             info!("end of file");
-            vd_chan.send(None);
+            component.send(ManagerComponent, MsgEOF);
             return false;
         }
     }

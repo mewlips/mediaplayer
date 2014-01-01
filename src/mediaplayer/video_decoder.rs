@@ -8,7 +8,8 @@ use ffmpeg_decoder::{DecoderUserData,FFmpegDecoder};
 use std::mem::size_of;
 use component_manager::{Component,ComponentStruct,VideoDecoderComponent,
                         ManagerComponent,ClockComponent,ExtractorComponent,
-                        Message,MsgPts,MsgStart,MsgExtract};
+                        VideoRendererComponent,
+                        Message,MsgPts,MsgStart,MsgExtract,MsgPacketData,MsgVideoData};
 
 pub struct VideoData {
     frame: *mut avcodec::AVFrame,
@@ -57,8 +58,7 @@ impl VideoDecoder {
             }
         }
     }
-    pub fn start(&mut self, vd_port: Port<Option<*mut avcodec::AVPacket>>,
-                        vr_chan: Chan<Option<~VideoData>>) {
+    pub fn start(&mut self) {
         let codec_ctx = self.decoder.codec_ctx.clone();
         let time_base = self.decoder.time_base.clone();
         let component = self.component.take().unwrap();
@@ -72,20 +72,16 @@ impl VideoDecoder {
                 }
             }
 
-            while VideoDecoder::decode(&component,
-                                       codec_ctx, time_base,
-                                       &vd_port, &vr_chan) {
+            while VideoDecoder::decode(&component, codec_ctx, time_base) {
                 ;
             }
         }
     }
     fn decode(component: &ComponentStruct,
               codec_ctx: *mut avcodec::AVCodecContext,
-              time_base: avutil::AVRational,
-              vd_port: &Port<Option<*mut avcodec::AVPacket>>,
-              vr_chan: &Chan<Option<~VideoData>>) -> bool {
-        match vd_port.recv() {
-            Some(packet) => {
+              time_base: avutil::AVRational) -> bool {
+        match component.recv() {
+            Message { msg: MsgPacketData(packet), .. } => {
                 unsafe {
                     let mut got_frame: c_int = 0;
                     let frame = avcodec::avcodec_alloc_frame();
@@ -115,16 +111,16 @@ impl VideoDecoder {
                     if got_frame != 0 {
                         component.send(ClockComponent, MsgPts(pts.clone()));
                         //debug!("send frame = {}", frame);
-                        vr_chan.send(Some(~VideoData::new(frame,pts)));
+                        component.send(VideoRendererComponent,
+                                       MsgVideoData(VideoData::new(frame,pts)));
                     } else {
                         component.send(ExtractorComponent, MsgExtract);
                     }
                 }
                 true
             }
-            None => {
-                info!("null packet received");
-                vr_chan.send(None);
+            _ => {
+                // TODO
                 false
             }
         }

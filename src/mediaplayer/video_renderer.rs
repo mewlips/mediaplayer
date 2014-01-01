@@ -8,7 +8,7 @@ use swscale;
 use util;
 use video_decoder::VideoData;
 use component_manager::{Component,ComponentStruct,VideoRendererComponent,
-                        ManagerComponent,Message,MsgStart};
+                        ManagerComponent,Message,MsgStart,MsgVideoData};
 
 pub struct VideoRenderer {
     component: Option<ComponentStruct>,
@@ -28,7 +28,7 @@ impl VideoRenderer {
             pix_fmt: pix_fmt,
         }
     }
-    pub fn start(&mut self, vr_port: Port<Option<~VideoData>>) {
+    pub fn start(&mut self) {
         let screen = match sdl::video::set_video_mode(
                                             self.width, self.height, 24,
                                             [sdl::video::HWSurface],
@@ -53,26 +53,25 @@ impl VideoRenderer {
             match component.recv() {
                 Message { from: ManagerComponent, msg: MsgStart, .. } => {
                     info!("start VideoReneder");
-                    while VideoRenderer::render(screen, frame_rgb.clone(),
-                                                width, height,
-                                                sws_ctx.clone(), &vr_port) {
-                        ;
-                    }
                 }
                 _ => {
                     fail!("unexpected message received");
                 }
             }
+            while VideoRenderer::render(&component, screen, frame_rgb.clone(),
+                                        width, height, sws_ctx.clone()) {
+                ;
+            }
         }
     }
 
-    fn render(screen: &sdl::video::Surface,
+    fn render(component: &ComponentStruct,
+              screen: &sdl::video::Surface,
               frame_rgb: *mut avcodec::AVFrame,
               width: int, height: int,
-              sws_ctx: *mut swscale::Struct_SwsContext,
-              vr_port: &Port<Option<~VideoData>>) -> bool {
-        match vr_port.recv() {
-            Some(ref mut picture) => {
+              sws_ctx: *mut swscale::Struct_SwsContext) -> bool {
+        match component.recv() {
+            Message { msg: MsgVideoData(ref mut picture), .. } => {
                 let frame = picture.frame;
                 let video_pts = picture.pts;
                 screen.with_lock(|pixels| {
@@ -93,8 +92,8 @@ impl VideoRenderer {
                 }
                 true
             }
-            None => {
-                info!("null frame received")
+            _ => {
+                // TODO
                 false
             }
         }

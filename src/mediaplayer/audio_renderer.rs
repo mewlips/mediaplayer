@@ -7,7 +7,7 @@ use std::cast::transmute;
 use std::libc;
 use audio_decoder::AudioData;
 use component_manager::{Component,ComponentStruct,AudioRendererComponent,
-                        ManagerComponent,Message,MsgStart};
+                        ManagerComponent,Message,MsgStart,MsgAudioData};
 
 pub static SDL_AudioBufferSize: u16 = 1024;
 
@@ -104,7 +104,7 @@ impl AudioRenderer {
             audio_pipe: audio_pipe,
         })
     }
-    pub fn start(&mut self, ar_port: Port<Option<~AudioData>>) {
+    pub fn start(&mut self) {
         debug!("AudioRenderer::start()");
         let wanted_spec =
             audio_alt::DesiredAudioSpec {
@@ -139,9 +139,8 @@ impl AudioRenderer {
             }
             let mut paused = true;
             loop {
-                let data = ar_port.recv();
-                match data {
-                    Some(ref data) => {
+                match component.recv() {
+                    Message { msg: MsgAudioData(ref data), .. } => {
                         let ptr = unsafe { transmute(data.chunk.as_ptr()) };
                         let len = data.chunk.len() as u64;
                         let result = unsafe {
@@ -157,7 +156,8 @@ impl AudioRenderer {
                             error!("write failed!");
                         }
                     }
-                    None => {
+                    _ => {
+                        // TODO
                         break;
                     }
                 }

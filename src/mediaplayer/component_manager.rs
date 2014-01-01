@@ -1,4 +1,7 @@
 use std::fmt;
+use avcodec;
+use audio_decoder::AudioData;
+use video_decoder::VideoData;
 
 #[deriving(Eq)]
 pub enum ComponentType {
@@ -73,7 +76,11 @@ pub enum MessageData {
     MsgStart,
     MsgPts(f64),
     MsgExtract,
-    //MsgPacketData(*mut avcodec::AVPacket)
+    MsgPacketData(*mut avcodec::AVPacket),
+    MsgVideoData(VideoData),
+    MsgAudioData(AudioData),
+    MsgError(~str),
+    MsgEOF,
 }
 
 pub trait Component {
@@ -101,11 +108,11 @@ impl ComponentManager {
         let chan = component.take_chan();
         component.set_mgr_chan(self.msg_chan.clone());
         self.components.get_mut_ref().push((component_type, chan));
-        println!("new component add: {}", component.component_type);
+        info!("new component add: {}", component.component_type);
     }
     pub fn start(&mut self) {
         let port = self.msg_port.take().unwrap();
-        println!("ComponentManager::start()");
+        debug!("ComponentManager::start()");
         let components = self.components.take().unwrap();
         do spawn {
             for &(component_type, ref chan) in components.iter() {
@@ -119,13 +126,25 @@ impl ComponentManager {
                 match port.recv() {
                     Message { from, to, msg } => {
                         for &(component_type, ref chan) in components.iter() {
-                            if component_type == to {
+                            if component_type == ManagerComponent {
+                                match msg {
+                                    MsgError(ref err) => {
+                                        // TODO
+                                    }
+                                    MsgEOF => {
+                                        // TODO
+                                    }
+                                    _ => {
+                                    }
+                                }
+                            } else if component_type == to {
                                 //println!("{} --> {}", from, to);
                                 chan.send(Message {
                                     from: from,
                                     to: to,
                                     msg: msg
                                 });
+                                break;
                             }
                         }
                     }

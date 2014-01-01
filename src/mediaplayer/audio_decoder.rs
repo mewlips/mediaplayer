@@ -7,8 +7,9 @@ use std::libc::c_int;
 use std::ptr::{mut_null,to_mut_unsafe_ptr};
 use std::vec;
 use component_manager::{Component,ComponentStruct,AudioDecoderComponent,
+                        AudioRendererComponent,
                         ManagerComponent,ClockComponent,ExtractorComponent,
-                        Message,MsgStart,MsgPts,MsgExtract};
+                        Message,MsgStart,MsgPts,MsgExtract,MsgPacketData,MsgAudioData};
 
 pub struct AudioData {
     chunk: ~[u8],
@@ -43,8 +44,7 @@ impl AudioDecoder {
             }
         }
     }
-    pub fn start(&mut self, ad_port: Port<Option<*mut avcodec::AVPacket>>,
-                            ar_chan: Chan<Option<~AudioData>>) {
+    pub fn start(&mut self) {
         let codec_ctx = self.decoder.codec_ctx.clone();
         unsafe {
             println!("sample_fmt = {}, {}", (*codec_ctx).sample_fmt, avutil::AV_SAMPLE_FMT_S16P);
@@ -58,9 +58,7 @@ impl AudioDecoder {
             match component.recv() {
                 Message { from: ManagerComponent, msg: MsgStart, .. } => {
                     info!("start AudioDecoder");
-                    while AudioDecoder::decode(&component,
-                                               codec_ctx, time_base,
-                                               &ad_port, &ar_chan) {
+                    while AudioDecoder::decode(&component, codec_ctx, time_base) {
                         ;
                     }
                 }
@@ -72,11 +70,9 @@ impl AudioDecoder {
     }
     fn decode(component: &ComponentStruct,
               codec_ctx: *mut avcodec::AVCodecContext,
-              time_base: avutil::AVRational,
-              ad_port: &Port<Option<*mut avcodec::AVPacket>>,
-              ar_chan: &Chan<Option<~AudioData>>) -> bool {
-        match ad_port.recv() {
-            Some(packet) => {
+              time_base: avutil::AVRational) -> bool {
+        match component.recv() {
+            Message { msg: MsgPacketData(packet), .. } => {
                 let mut got_frame: c_int = 0;
                 unsafe {
                     let frame = avcodec::avcodec_alloc_frame();
@@ -90,19 +86,19 @@ impl AudioDecoder {
                         let data_size = avutil::av_samples_get_buffer_size(
                             mut_null(), (*codec_ctx).channels, (*frame).nb_samples,
                             (*codec_ctx).sample_fmt, 1);
-                        ar_chan.send(Some(~AudioData::new(
-                            vec::from_buf::<u8>(
-                                transmute_immut_unsafe((*frame).data[0]),
-                                data_size as uint), pts)));
+                        component.send(AudioRendererComponent,
+                           MsgAudioData(AudioData::new(
+                                vec::from_buf::<u8>(
+                                    transmute_immut_unsafe((*frame).data[0]),
+                                    data_size as uint), pts)));
                     } else {
                         component.send(ExtractorComponent, MsgExtract)
                     }
                 }
                 true
             }
-            None => {
-                info!("null packet received");
-                ar_chan.send(None);
+            _ => {
+                // TODO
                 false
             }
         }
