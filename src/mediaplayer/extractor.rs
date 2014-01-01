@@ -6,11 +6,11 @@ use std::ptr::mut_null;
 use util;
 use std::mem::size_of;
 use std::cast::{transmute};
-use component_manager::{Component,ComponentId,Message};
+use component_manager::{Component,ComponentStruct,ExtractorComponent,
+                        ManagerComponent,Message,MsgStart,MsgExtract};
 
 pub struct Extractor {
-    component_id: Option<ComponentId>,
-    chan: Option<SharedChan<Message>>,
+    component: Option<ComponentStruct>,
     priv fmt_ctx: *mut avformat::AVFormatContext,
     streams: ~[AVStream],
     video_index: Option<int>,
@@ -20,8 +20,7 @@ pub struct Extractor {
 impl Extractor {
     pub fn new(path: &Path) -> Option<Extractor> {
         let mut extractor = Extractor {
-            component_id: None,
-            chan: None,
+            component: Some(ComponentStruct::new(ExtractorComponent)),
             fmt_ctx: unsafe { avformat::avformat_alloc_context() },
             streams: ~[],
             video_index: None,
@@ -97,21 +96,38 @@ impl Extractor {
         }
         None
     }
-    pub fn start(&self,
+    pub fn start(&mut self,
                  vd_chan: Chan<Option<*mut avcodec::AVPacket>>,
                  ad_chan: Chan<Option<*mut avcodec::AVPacket>>) {
         let fmt_ctx = self.fmt_ctx.clone();
         let video_index = self.video_index.clone();
         let audio_index = self.audio_index.clone();
+        let component = self.component.take().unwrap();
         do spawn {
-            while Extractor::pump(fmt_ctx,
-                                  video_index, audio_index,
-                                  &vd_chan, &ad_chan) {
-                ;
+            match component.recv() {
+                Message { from: ManagerComponent, msg: MsgStart, .. } => {
+                    info!("start Extractor");
+                    while Extractor::pump(&component, fmt_ctx,
+                                          video_index, audio_index,
+                                          &vd_chan, &ad_chan) {
+                        match component.recv() {
+                            Message { from, to, msg: MsgExtract } => {
+                                //debug!("MsgExtract");
+                            }
+                            _ => {
+                                fail!("unexpected message received");
+                            }
+                        }
+                    }
+                }
+                _ => {
+                    fail!("unexpected message received");
+                }
             }
         }
     }
-    fn pump(fmt_ctx: *mut avformat::AVFormatContext,
+    fn pump(component: &ComponentStruct,
+            fmt_ctx: *mut avformat::AVFormatContext,
             video_index: Option<int>, audio_index: Option<int>,
             vd_chan: &Chan<Option<*mut avcodec::AVPacket>>,
             ad_chan: &Chan<Option<*mut avcodec::AVPacket>>) -> bool {
@@ -152,7 +168,7 @@ impl Extractor {
                 }
             }
             //util::usleep(14_700); // TEMPORARY
-            util::usleep(13000);
+            //util::usleep(13000);
             return true;
         } else {
             info!("end of file");
@@ -169,16 +185,7 @@ impl Drop for Extractor {
 }
 
 impl Component for Extractor {
-    fn set_id(&mut self, id: ComponentId) {
-        self.component_id = Some(id);
-    }
-    fn get_id(&self) -> Option<ComponentId> {
-        self.component_id
-    }
-    fn get_name(&self) -> &str {
-        "Extractor"
-    }
-    fn set_chan(&mut self, chan: SharedChan<Message>) {
-        self.chan = Some(chan);
+    fn get<'a>(&'a mut self) -> &'a mut ComponentStruct {
+        self.component.get_mut_ref()
     }
 }

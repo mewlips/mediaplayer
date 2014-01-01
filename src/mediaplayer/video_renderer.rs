@@ -7,11 +7,11 @@ use std::ptr::{null,mut_null};
 use swscale;
 use util;
 use video_decoder::VideoData;
-use component_manager::{Component,ComponentId,Message};
+use component_manager::{Component,ComponentStruct,VideoRendererComponent,
+                        ManagerComponent,Message,MsgStart};
 
 pub struct VideoRenderer {
-    component_id: Option<ComponentId>,
-    chan: Option<SharedChan<Message>>,
+    component: Option<ComponentStruct>,
     width: int,
     height: int,
     pix_fmt: avutil::Enum_AVPixelFormat,
@@ -22,14 +22,13 @@ impl VideoRenderer {
             -> VideoRenderer {
         debug!("pix_fmt = {}", pix_fmt as int);
         VideoRenderer {
-            component_id: None,
-            chan: None,
+            component: Some(ComponentStruct::new(VideoRendererComponent)),
             width: width,
             height: height,
             pix_fmt: pix_fmt,
         }
     }
-    pub fn start(&self, vr_port: Port<Option<~VideoData>>) {
+    pub fn start(&mut self, vr_port: Port<Option<~VideoData>>) {
         let screen = match sdl::video::set_video_mode(
                                             self.width, self.height, 24,
                                             [sdl::video::HWSurface],
@@ -49,11 +48,20 @@ impl VideoRenderer {
         };
         let width = self.width.clone();
         let height = self.height.clone();
+        let component = self.component.take().unwrap();
         do spawn {
-            while VideoRenderer::render(screen, frame_rgb.clone(),
-                                        width, height,
-                                        sws_ctx.clone(), &vr_port) {
-                ;
+            match component.recv() {
+                Message { from: ManagerComponent, msg: MsgStart, .. } => {
+                    info!("start VideoReneder");
+                    while VideoRenderer::render(screen, frame_rgb.clone(),
+                                                width, height,
+                                                sws_ctx.clone(), &vr_port) {
+                        ;
+                    }
+                }
+                _ => {
+                    fail!("unexpected message received");
+                }
             }
         }
     }
@@ -100,16 +108,7 @@ impl Drop for VideoRenderer {
 }
 
 impl Component for VideoRenderer {
-    fn set_id(&mut self, id: ComponentId) {
-        self.component_id = Some(id);
-    }
-    fn get_id(&self) -> Option<ComponentId> {
-        self.component_id
-    }
-    fn get_name(&self) -> &str {
-        "VideoRenderer"
-    }
-    fn set_chan(&mut self, chan: SharedChan<Message>) {
-        self.chan = Some(chan);
+    fn get<'a>(&'a mut self) -> &'a mut ComponentStruct {
+        self.component.get_mut_ref()
     }
 }

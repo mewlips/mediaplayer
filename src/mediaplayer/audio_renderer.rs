@@ -6,7 +6,8 @@ use avcodec;
 use std::cast::transmute;
 use std::libc;
 use audio_decoder::AudioData;
-use component_manager::{Component,ComponentId,Message};
+use component_manager::{Component,ComponentStruct,AudioRendererComponent,
+                        ManagerComponent,Message,MsgStart};
 
 pub static SDL_AudioBufferSize: u16 = 1024;
 
@@ -84,8 +85,7 @@ mod audio_alt {
 
 
 pub struct AudioRenderer {
-    component_id: Option<ComponentId>,
-    chan: Option<SharedChan<Message>>,
+    component: Option<ComponentStruct>,
     codec_ctx: *mut avcodec::AVCodecContext,
     pipe_out: c_int,
     audio_pipe: AudioPipe,
@@ -98,14 +98,13 @@ impl AudioRenderer {
 
         let audio_pipe = AudioPipe::new(pipe_input);
         Some(AudioRenderer {
-            component_id: None,
-            chan: None,
+            component: Some(ComponentStruct::new(AudioRendererComponent)),
             codec_ctx: codec_ctx.clone(),
             pipe_out: pipe_out,
             audio_pipe: audio_pipe,
         })
     }
-    pub fn start(&self, ar_port: Port<Option<~AudioData>>) {
+    pub fn start(&mut self, ar_port: Port<Option<~AudioData>>) {
         debug!("AudioRenderer::start()");
         let wanted_spec =
             audio_alt::DesiredAudioSpec {
@@ -128,7 +127,16 @@ impl AudioRenderer {
         debug!("AudioRenderer::start() 2");
 
         let pipe_out = self.pipe_out.clone();
+        let component = self.component.take().unwrap();
         do spawn {
+            match component.recv() {
+                Message { from: ManagerComponent, msg: MsgStart, .. } => {
+                    info!("start AudioRenderer");
+                }
+                _ => {
+                    fail!("unexpected message received");
+                }
+            }
             let mut paused = true;
             loop {
                 let data = ar_port.recv();
@@ -165,16 +173,7 @@ impl Drop for AudioRenderer {
 }
 
 impl Component for AudioRenderer {
-    fn set_id(&mut self, id: ComponentId) {
-        self.component_id = Some(id);
-    }
-    fn get_id(&self) -> Option<ComponentId> {
-        self.component_id
-    }
-    fn get_name(&self) -> &str {
-        "AudioRenderer"
-    }
-    fn set_chan(&mut self, chan: SharedChan<Message>) {
-        self.chan = Some(chan);
+    fn get<'a>(&'a mut self) -> &'a mut ComponentStruct {
+        self.component.get_mut_ref()
     }
 }

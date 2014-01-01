@@ -6,7 +6,9 @@ use std::cast::{transmute_immut_unsafe};
 use std::libc::c_int;
 use std::ptr::{mut_null,to_mut_unsafe_ptr};
 use std::vec;
-use component_manager::{Component,ComponentId,Message,MsgPts};
+use component_manager::{Component,ComponentStruct,AudioDecoderComponent,
+                        ManagerComponent,ClockComponent,ExtractorComponent,
+                        Message,MsgStart,MsgPts,MsgExtract};
 
 pub struct AudioData {
     chunk: ~[u8],
@@ -23,8 +25,7 @@ impl AudioData {
 }
 
 pub struct AudioDecoder {
-    component_id: Option<ComponentId>,
-    chan: Option<SharedChan<Message>>,
+    component: Option<ComponentStruct>,
     decoder: FFmpegDecoder,
 }
 
@@ -33,8 +34,7 @@ impl AudioDecoder {
         match FFmpegDecoder::new(audio_stream) {
             Some(decoder) => {
                 Some(AudioDecoder {
-                    component_id: None,
-                    chan: None,
+                    component: Some(ComponentStruct::new(AudioDecoderComponent)),
                     decoder: decoder,
                 })
             }
@@ -53,18 +53,24 @@ impl AudioDecoder {
             }
         }
         let time_base = self.decoder.time_base.clone();
-
-        let component_id = self.get_id().unwrap();
-        let chan = self.chan.take().unwrap();
+        let component = self.component.take().unwrap();
         do spawn {
-            while AudioDecoder::decode(component_id, &chan,
-                                       codec_ctx, time_base,
-                                       &ad_port, &ar_chan) {
-                ;
+            match component.recv() {
+                Message { from: ManagerComponent, msg: MsgStart, .. } => {
+                    info!("start AudioDecoder");
+                    while AudioDecoder::decode(&component,
+                                               codec_ctx, time_base,
+                                               &ad_port, &ar_chan) {
+                        ;
+                    }
+                }
+                _ => {
+                    fail!("unexpected message received");
+                }
             }
         }
     }
-    fn decode(component_id: ComponentId, chan: &SharedChan<Message>,
+    fn decode(component: &ComponentStruct,
               codec_ctx: *mut avcodec::AVCodecContext,
               time_base: avutil::AVRational,
               ad_port: &Port<Option<*mut avcodec::AVPacket>>,
@@ -78,9 +84,9 @@ impl AudioDecoder {
                         codec_ctx, frame, to_mut_unsafe_ptr(&mut got_frame),
                         transmute_immut_unsafe(packet));
                     let pts = (*packet).pts as f64 * avutil::av_q2d(time_base);
-                    chan.send(Message(component_id.clone(), MsgPts(pts.clone())));
                     avcodec::av_free_packet(packet);
                     if got_frame != 0 {
+                        component.send(ClockComponent, MsgPts(pts.clone()));
                         let data_size = avutil::av_samples_get_buffer_size(
                             mut_null(), (*codec_ctx).channels, (*frame).nb_samples,
                             (*codec_ctx).sample_fmt, 1);
@@ -88,6 +94,8 @@ impl AudioDecoder {
                             vec::from_buf::<u8>(
                                 transmute_immut_unsafe((*frame).data[0]),
                                 data_size as uint), pts)));
+                    } else {
+                        component.send(ExtractorComponent, MsgExtract)
                     }
                 }
                 true
@@ -108,17 +116,7 @@ impl Drop for AudioDecoder {
 }
 
 impl Component for AudioDecoder {
-    fn set_id(&mut self, id: ComponentId) {
-        self.component_id = Some(id);
-    }
-    fn get_id(&self) -> Option<ComponentId> {
-        self.component_id
-    }
-    fn get_name(&self) -> &str {
-        "AudioDecoder"
-    }
-    fn set_chan(&mut self, chan: SharedChan<Message>) {
-        self.chan = Some(chan);
+    fn get<'a>(&'a mut self) -> &'a mut ComponentStruct {
+        self.component.get_mut_ref()
     }
 }
-

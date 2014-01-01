@@ -4,6 +4,7 @@ use avcodec;
 use avutil;
 use video_decoder::{VideoData,VideoDecoder};
 use audio_decoder::{AudioData,AudioDecoder};
+use clock::Clock;
 use video_renderer::VideoRenderer;
 use audio_renderer::AudioRenderer;
 use component_manager::{Component,ComponentManager};
@@ -19,24 +20,26 @@ pub enum Command {
     Start,
 }
 
-pub struct MediaPlayer<'a> {
-    component_mgr: ComponentManager<'a>,
+pub struct MediaPlayer {
+    component_mgr: ComponentManager,
     source: Option<DataSource>,
     extractor: Option<Extractor>,
     video_decoder: Option<VideoDecoder>,
     audio_decoder: Option<AudioDecoder>,
+    clock: Option<Clock>,
     video_renderer: Option<VideoRenderer>,
     audio_renderer: Option<AudioRenderer>,
 }
 
-impl<'a> MediaPlayer<'a> {
-    pub fn new() -> MediaPlayer<'a> {
+impl MediaPlayer {
+    pub fn new() -> MediaPlayer {
         MediaPlayer {
-            component_mgr: ComponentManager::<'a>::new(),
+            component_mgr: ComponentManager::new(),
             source: None,
             extractor: None,
             video_decoder: None,
             audio_decoder: None,
+            clock: None,
             video_renderer: None,
             audio_renderer: None,
         }
@@ -76,7 +79,8 @@ impl<'a> MediaPlayer<'a> {
                 let height = video_decoder.height;
                 let pix_fmt = video_decoder.pix_fmt;
                 self.video_renderer = Some(VideoRenderer::new(width, height, pix_fmt));
-                self.component_mgr.add(self.video_renderer.get_mut_ref());
+                let video_renderer = self.video_renderer.get_mut_ref();
+                self.component_mgr.add(video_renderer);
             }
             None => {
                 debug!("no video stream found");
@@ -89,12 +93,17 @@ impl<'a> MediaPlayer<'a> {
                 self.component_mgr.add(audio_decoder);
                 let codec_ctx = audio_decoder.decoder.codec_ctx.clone();
                 self.audio_renderer = AudioRenderer::new(codec_ctx);
-                self.component_mgr.add(self.audio_renderer.get_mut_ref());
+                let audio_renderer = self.audio_renderer.get_mut_ref();
+                self.component_mgr.add(audio_renderer);
             }
             None => {
                 debug!("no audio stream found");
             }
         }
+
+        self.clock = Some(Clock::new());
+        let clock = self.clock.get_mut_ref();
+        self.component_mgr.add(clock);
 
         true
     }
@@ -108,12 +117,13 @@ impl<'a> MediaPlayer<'a> {
         // Audio Decoder --> Audio Renderer
         let (ar_port, ar_chan) = Chan::<Option<~AudioData>>::new();
 
-        self.component_mgr.start();
-        self.video_decoder.get_ref().start(vd_port, vr_chan);
+        self.extractor.get_mut_ref().start(vd_chan, ad_chan);
+        self.video_decoder.get_mut_ref().start(vd_port, vr_chan);
         self.audio_decoder.get_mut_ref().start(ad_port, ar_chan);
-        self.extractor.get_ref().start(vd_chan, ad_chan);
-        self.video_renderer.get_ref().start(vr_port);
-        self.audio_renderer.get_ref().start(ar_port);
+        self.clock.get_mut_ref().start();
+        self.video_renderer.get_mut_ref().start(vr_port);
+        self.audio_renderer.get_mut_ref().start(ar_port);
 
+        self.component_mgr.start();
     }
 }

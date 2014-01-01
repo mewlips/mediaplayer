@@ -6,7 +6,9 @@ use std::libc::{c_int};
 use std::ptr::{to_mut_unsafe_ptr};
 use ffmpeg_decoder::{DecoderUserData,FFmpegDecoder};
 use std::mem::size_of;
-use component_manager::{Component,ComponentId,Message};
+use component_manager::{Component,ComponentStruct,VideoDecoderComponent,
+                        ManagerComponent,ClockComponent,ExtractorComponent,
+                        Message,MsgPts,MsgStart,MsgExtract};
 
 pub struct VideoData {
     frame: *mut avcodec::AVFrame,
@@ -23,8 +25,7 @@ impl VideoData {
 }
 
 pub struct VideoDecoder {
-    component_id: Option<ComponentId>,
-    chan: Option<SharedChan<Message>>,
+    component: Option<ComponentStruct>,
     decoder: FFmpegDecoder,
     width: int,
     height: int,
@@ -44,8 +45,7 @@ impl VideoDecoder {
                     (*decoder.codec_ctx).release_buffer = release_buffer;
                 }
                 Some(VideoDecoder {
-                    component_id: None,
-                    chan: None,
+                    component: Some(ComponentStruct::new(VideoDecoderComponent)),
                     decoder: decoder,
                     width: width,
                     height: height,
@@ -57,18 +57,30 @@ impl VideoDecoder {
             }
         }
     }
-    pub fn start(&self, vd_port: Port<Option<*mut avcodec::AVPacket>>,
+    pub fn start(&mut self, vd_port: Port<Option<*mut avcodec::AVPacket>>,
                         vr_chan: Chan<Option<~VideoData>>) {
         let codec_ctx = self.decoder.codec_ctx.clone();
         let time_base = self.decoder.time_base.clone();
+        let component = self.component.take().unwrap();
         do spawn {
-            while VideoDecoder::decode(codec_ctx, time_base,
+            match component.recv() {
+                Message { from: ManagerComponent, msg: MsgStart, .. } => {
+                    info!("start VideoDecoder");
+                }
+                _ => {
+                    fail!("unexpected message received");
+                }
+            }
+
+            while VideoDecoder::decode(&component,
+                                       codec_ctx, time_base,
                                        &vd_port, &vr_chan) {
                 ;
             }
         }
     }
-    fn decode(codec_ctx: *mut avcodec::AVCodecContext,
+    fn decode(component: &ComponentStruct,
+              codec_ctx: *mut avcodec::AVCodecContext,
               time_base: avutil::AVRational,
               vd_port: &Port<Option<*mut avcodec::AVPacket>>,
               vr_chan: &Chan<Option<~VideoData>>) -> bool {
@@ -89,9 +101,9 @@ impl VideoDecoder {
                         if *frame_pts == avutil::AV_NOPTS_VALUE as u64 {
                             pts = (*packet).dts as f64;
                         }
-                        println!("use pts");
+                        //debug!("use pts");
                     } else if (*packet).dts != avutil::AV_NOPTS_VALUE {
-                        println!("use dts");
+                        //debug!("use dts");
                         pts = (*packet).dts as f64;
                     } else {
                         pts = 0f64;
@@ -101,8 +113,11 @@ impl VideoDecoder {
                     avcodec::av_free_packet(packet);
                     //println!("pts = {}, dts = {}", (*packet).pts, (*packet).dts);
                     if got_frame != 0 {
+                        component.send(ClockComponent, MsgPts(pts.clone()));
                         //debug!("send frame = {}", frame);
                         vr_chan.send(Some(~VideoData::new(frame,pts)));
+                    } else {
+                        component.send(ExtractorComponent, MsgExtract);
                     }
                 }
                 true
@@ -123,17 +138,8 @@ impl Drop for VideoDecoder {
 }
 
 impl Component for VideoDecoder {
-    fn set_id(&mut self, id: ComponentId) {
-        self.component_id = Some(id);
-    }
-    fn get_id(&self) -> Option<ComponentId> {
-        self.component_id
-    }
-    fn get_name(&self) -> &str {
-        "VideoDecoder"
-    }
-    fn set_chan(&mut self, chan: SharedChan<Message>) {
-        self.chan = Some(chan);
+    fn get<'a>(&'a mut self) -> &'a mut ComponentStruct {
+        self.component.get_mut_ref()
     }
 }
 
@@ -147,7 +153,7 @@ extern fn get_buffer(codec_ctx: *mut avcodec::AVCodecContext,
         let pts: *mut u64 = transmute(avutil::av_malloc(size_of::<u64>() as u64));
         (*pts) = (*user_data).pts;
         (*pic).opaque = transmute(pts);
-        println!("get_buffer(): pts = {}", (*pts));
+        //debug!("get_buffer(): pts = {}", (*pts));
     }
     ret
 }
@@ -157,5 +163,5 @@ extern fn release_buffer(codec_ctx: *mut avcodec::AVCodecContext,
     unsafe {
         avcodec::avcodec_default_release_buffer(codec_ctx, pic);
     }
-    println!("release_buffer()");
+    //debug!("release_buffer()");
 }
