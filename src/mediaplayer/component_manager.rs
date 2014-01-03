@@ -61,9 +61,6 @@ impl ComponentStruct {
     pub fn recv(&self) -> Message {
         self.port.recv()
     }
-    pub fn try_recv(&self) -> Option<Message> {
-        self.port.try_recv()
-    }
 }
 
 pub struct Message {
@@ -128,7 +125,7 @@ impl ComponentManager {
                         for &(component_type, ref chan) in components.iter() {
                             if component_type == ManagerComponent {
                                 match msg {
-                                    MsgError(ref err) => {
+                                    MsgError(ref _err) => {
                                         // TODO
                                     }
                                     MsgEOF => {

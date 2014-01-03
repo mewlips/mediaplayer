@@ -5,7 +5,6 @@ use audio_pipe::AudioPipe;
 use avcodec;
 use std::cast::transmute;
 use std::libc;
-use audio_decoder::AudioData;
 use component_manager::{Component,ComponentStruct,AudioRendererComponent,
                         ManagerComponent,Message,MsgStart,MsgAudioData};
 

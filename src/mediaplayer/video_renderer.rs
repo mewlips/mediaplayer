@@ -5,8 +5,6 @@ use std::cast::{transmute};
 use std::libc::{c_int};
 use std::ptr::{null,mut_null};
 use swscale;
-use util;
-use video_decoder::VideoData;
 use component_manager::{Component,ComponentStruct,VideoRendererComponent,
                         ManagerComponent,Message,MsgStart,MsgVideoData};
 
@@ -73,7 +71,7 @@ impl VideoRenderer {
         match component.recv() {
             Message { msg: MsgVideoData(ref mut picture), .. } => {
                 let frame = picture.frame;
-                let video_pts = picture.pts;
+                //let video_pts = picture.pts;
                 screen.with_lock(|pixels| {
                     let ptr = pixels.as_mut_ptr();
                     unsafe {

@@ -110,7 +110,7 @@ impl Extractor {
                     while Extractor::pump(&component, fmt_ctx,
                                           video_index, audio_index) {
                         match component.recv() {
-                            Message { from, to, msg: MsgExtract } => {
+                            Message { msg: MsgExtract, .. } => {
                                 //debug!("MsgExtract");
                             }
                             _ => {

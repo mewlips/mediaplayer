@@ -1,14 +1,12 @@
 use extra::url;
 use extractor::Extractor;
-use avcodec;
 use avutil;
-use video_decoder::{VideoData,VideoDecoder};
-use audio_decoder::{AudioData,AudioDecoder};
+use video_decoder::VideoDecoder;
+use audio_decoder::AudioDecoder;
 use clock::Clock;
 use video_renderer::VideoRenderer;
 use audio_renderer::AudioRenderer;
-use component_manager::{Component,ComponentManager};
-use util;
+use component_manager::ComponentManager;
 
 enum DataSource {
     UrlSource(url::Url),

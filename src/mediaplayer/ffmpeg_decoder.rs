@@ -4,7 +4,6 @@ use avutil;
 use std::ptr::{mut_null,to_mut_unsafe_ptr};
 use std::cast::{transmute,transmute_immut_unsafe};
 use util;
-use std::libc::c_int;
 use std::mem::size_of;
 
 pub struct DecoderUserData {

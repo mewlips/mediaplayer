@@ -38,7 +38,7 @@ impl Clock {
             loop {
                 let last_clock = Clock::get_time();
                 match component.recv() {
-                    Message { from, to, msg: MsgPts(pts)} => {
+                    Message { from, msg: MsgPts(pts), .. } => {
                         //debug!("Clock: pts {} from {}", pts, from);
                         if from == VideoDecoderComponent ||
                            from == AudioDecoderComponent {
