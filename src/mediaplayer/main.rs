@@ -4,6 +4,7 @@ extern mod avutil;
 extern mod extra;
 extern mod sdl;
 extern mod swscale;
+extern mod swresample;
 
 use avformat::av_register_all;
 use extra::getopts::{getopts,optflag,Opt};
