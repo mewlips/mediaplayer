@@ -18,7 +18,6 @@ pub struct VideoRenderer {
 impl VideoRenderer {
     pub fn new(width: int, height: int, pix_fmt: avutil::Enum_AVPixelFormat)
             -> VideoRenderer {
-        debug!("pix_fmt = {}", pix_fmt as int);
         VideoRenderer {
             component: Some(ComponentStruct::new(VideoRendererComponent)),
             width: width,

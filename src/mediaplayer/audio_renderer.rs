@@ -93,7 +93,6 @@ pub struct AudioRenderer {
 impl AudioRenderer {
     pub fn new(codec_ctx: *mut avcodec::AVCodecContext) -> Option<AudioRenderer> {
         let os::Pipe {input: pipe_input, out: pipe_out} = os::pipe();
-        println!("pipe_input = {}, pipe_out = {}", pipe_input, pipe_out);
 
         let audio_pipe = AudioPipe::new(pipe_input);
         Some(AudioRenderer {
@@ -104,7 +103,6 @@ impl AudioRenderer {
         })
     }
     pub fn start(&mut self) {
-        debug!("AudioRenderer::start()");
         let wanted_spec =
             audio_alt::DesiredAudioSpec {
                 freq: unsafe { (*self.codec_ctx).sample_rate },
@@ -122,8 +120,6 @@ impl AudioRenderer {
                 return;
             }
         }
-
-        debug!("AudioRenderer::start() 2");
 
         let pipe_out = self.pipe_out.clone();
         let component = self.component.take().unwrap();

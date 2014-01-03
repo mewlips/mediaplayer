@@ -40,7 +40,7 @@ impl AudioDecoder {
                 let codec = unsafe { &mut (*(*audio_stream.av_stream).codec) };
                 let swr_ctx: Option<*mut swresample::SwrContext> =
                     if codec.sample_fmt != avutil::AV_SAMPLE_FMT_S16 {
-                        info!("audio need resample. (SwResample)");
+                        info!("audio need to resample. (libswresample)");
                         let swr_ctx = unsafe { swresample::swr_alloc() };
                         match (codec.channel_layout, codec.channels) {
                             (0, 1) => {
@@ -74,7 +74,7 @@ impl AudioDecoder {
                             });
                             "out_sample_rate".with_c_str(|name| {
                                 avutil::av_opt_set_int(swr_ctx, name,
-                                    48000, 0);
+                                    codec.sample_rate as i64, 0);
                             });
                         }
                         if unsafe { swresample::swr_init(swr_ctx) } < 0 {
@@ -102,7 +102,6 @@ impl AudioDecoder {
     pub fn start(&mut self) {
         let codec_ctx = self.decoder.codec_ctx.clone();
         unsafe {
-            println!("sample_fmt = {}, {}", (*codec_ctx).sample_fmt, avutil::AV_SAMPLE_FMT_S16P);
             if (*codec_ctx).sample_fmt == avutil::AV_SAMPLE_FMT_S16P {
                 (*codec_ctx).request_sample_fmt = avutil::AV_SAMPLE_FMT_S16;
             }
