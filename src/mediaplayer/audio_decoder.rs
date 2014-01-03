@@ -9,10 +9,12 @@ use std::vec;
 use component_manager::{Component,ComponentStruct,AudioDecoderComponent,
                         AudioRendererComponent,
                         ManagerComponent,ClockComponent,ExtractorComponent,
-                        Message,MsgStart,MsgPts,MsgExtract,MsgPacketData,MsgAudioData};
+                        Message,MsgStart,MsgStop,
+                        MsgPts,MsgExtract,MsgPacketData,MsgAudioData};
 use swresample;
 use util;
 
+#[deriving(Clone)]
 pub struct AudioData {
     chunk: ~[u8],
     pts: f64,
@@ -112,16 +114,17 @@ impl AudioDecoder {
         do spawn {
             match component.recv() {
                 Message { from: ManagerComponent, msg: MsgStart, .. } => {
-                    info!("start AudioDecoder");
-                    while AudioDecoder::decode(&component, codec_ctx,
-                                               time_base, swr_ctx) {
-                        ;
-                    }
+                    info!("start VideoDecoder");
                 }
                 _ => {
                     fail!("unexpected message received");
                 }
             }
+            while AudioDecoder::decode(&component, codec_ctx,
+                                       time_base, swr_ctx) {
+                ;
+            }
+            info!("stop AudioDecoder");
         }
     }
     fn decode(component: &ComponentStruct,
@@ -149,7 +152,7 @@ impl AudioDecoder {
                                     &mut (*swr_ctx), &mut (*frame)) {
                                     Some(chunk) => {
                                         component.send(AudioRendererComponent,
-                                            MsgAudioData(AudioData::new(
+                                            MsgAudioData(~AudioData::new(
                                                 chunk, pts)));
                                     }
                                     None => {}
@@ -157,7 +160,7 @@ impl AudioDecoder {
                             }
                             None => {
                                 component.send(AudioRendererComponent,
-                                    MsgAudioData(AudioData::new(
+                                    MsgAudioData(~AudioData::new(
                                         vec::from_buf::<u8>(
                                             transmute_immut_unsafe((*frame).data[0]),
                                             data_size as uint), pts)));
@@ -170,8 +173,11 @@ impl AudioDecoder {
                 }
                 true
             }
+            Message { msg: MsgStop, .. } => {
+                false
+            }
             _ => {
-                // TODO
+                error!("unexpected message received");
                 false
             }
         }

@@ -69,13 +69,15 @@ pub struct Message {
     msg: MessageData
 }
 
+#[deriving(Clone)]
 pub enum MessageData {
     MsgStart,
+    MsgStop,
     MsgPts(f64),
     MsgExtract,
     MsgPacketData(*mut avcodec::AVPacket),
-    MsgVideoData(VideoData),
-    MsgAudioData(AudioData),
+    MsgVideoData(~VideoData),
+    MsgAudioData(~AudioData),
     MsgError(~str),
     MsgEOF,
 }
@@ -112,13 +114,15 @@ impl ComponentManager {
         debug!("ComponentManager::start()");
         let components = self.components.take().unwrap();
         do spawn {
-            for &(component_type, ref chan) in components.iter() {
-                chan.send(Message {
-                    from: ManagerComponent,
-                    to: component_type,
-                    msg: MsgStart,
-                });
-            }
+            let broadcast = |msg: MessageData| {
+                for &(component_type, ref chan) in components.iter() {
+                    chan.send(Message {
+                        from: ManagerComponent,
+                        to: component_type,
+                        msg: msg.clone() });
+                }
+            };
+            broadcast(MsgStart);
             loop {
                 match port.recv() {
                     Message { from, to, msg } => {
@@ -129,7 +133,8 @@ impl ComponentManager {
                                         // TODO
                                     }
                                     MsgEOF => {
-                                        // TODO
+                                        debug!("MsgEOF received");
+                                        broadcast(MsgStop);
                                     }
                                     _ => {
                                     }

@@ -6,7 +6,7 @@ use avcodec;
 use std::cast::transmute;
 use std::libc;
 use component_manager::{Component,ComponentStruct,AudioRendererComponent,
-                        ManagerComponent,Message,MsgStart,MsgAudioData};
+                        ManagerComponent,Message,MsgStart,MsgAudioData,MsgStop};
 
 pub static SDL_AudioBufferSize: u16 = 1024;
 
@@ -151,12 +151,16 @@ impl AudioRenderer {
                             error!("write failed!");
                         }
                     }
+                    Message { msg: MsgStop, .. } => {
+                        break;
+                    }
                     _ => {
                         // TODO
                         break;
                     }
                 }
             }
+            info!("stop AudioRenderer");
         }
     }
 }

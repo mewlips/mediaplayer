@@ -3,7 +3,7 @@ use util;
 use component_manager::{Component,ComponentStruct,AudioDecoderComponent,
                         ManagerComponent,ExtractorComponent,
                         VideoDecoderComponent,ClockComponent,
-                        Message,MsgStart,MsgPts,MsgExtract};
+                        Message,MsgStart,MsgStop,MsgPts,MsgExtract};
 
 pub struct Clock {
     component: Option<ComponentStruct>,
@@ -48,13 +48,19 @@ impl Clock {
                             component.send(ExtractorComponent, MsgExtract);
                         }
                     }
+                    Message { msg: MsgStop, .. } => {
+                        break;
+                    }
                     _ => {
+                        error!("unexpected message received");
+                        break;
                     }
                 }
                 let elapse_time = Clock::get_time() - last_clock;
                 clock += elapse_time + 0.0001f64;
                 //debug!("current = {}", clock);
             }
+            info!("stop Clock");
         }
     }
 }

@@ -6,7 +6,7 @@ use std::libc::{c_int};
 use std::ptr::{null,mut_null};
 use swscale;
 use component_manager::{Component,ComponentStruct,VideoRendererComponent,
-                        ManagerComponent,Message,MsgStart,MsgVideoData};
+                        ManagerComponent,Message,MsgStart,MsgStop,MsgVideoData};
 
 pub struct VideoRenderer {
     component: Option<ComponentStruct>,
@@ -59,6 +59,7 @@ impl VideoRenderer {
                                         width, height, sws_ctx.clone()) {
                 ;
             }
+            info!("stop VideoRenderer");
         }
     }
 
@@ -89,8 +90,11 @@ impl VideoRenderer {
                 }
                 true
             }
+            Message { msg: MsgStop, .. } => {
+                false
+            }
             _ => {
-                // TODO
+                error!("unexpected message received");
                 false
             }
         }

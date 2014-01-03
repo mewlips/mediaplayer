@@ -9,8 +9,10 @@ use std::mem::size_of;
 use component_manager::{Component,ComponentStruct,VideoDecoderComponent,
                         ManagerComponent,ClockComponent,ExtractorComponent,
                         VideoRendererComponent,
-                        Message,MsgPts,MsgStart,MsgExtract,MsgPacketData,MsgVideoData};
+                        Message,MsgPts,MsgStart,MsgStop,
+                        MsgExtract,MsgPacketData,MsgVideoData};
 
+#[deriving(Clone)]
 pub struct VideoData {
     frame: *mut avcodec::AVFrame,
     pts: f64,
@@ -75,6 +77,7 @@ impl VideoDecoder {
             while VideoDecoder::decode(&component, codec_ctx, time_base) {
                 ;
             }
+            info!("stop VideoDecoder");
         }
     }
     fn decode(component: &ComponentStruct,
@@ -112,15 +115,18 @@ impl VideoDecoder {
                         component.send(ClockComponent, MsgPts(pts.clone()));
                         //debug!("send frame = {}", frame);
                         component.send(VideoRendererComponent,
-                                       MsgVideoData(VideoData::new(frame,pts)));
+                                       MsgVideoData(~VideoData::new(frame,pts)));
                     } else {
                         component.send(ExtractorComponent, MsgExtract);
                     }
                 }
                 true
             }
+            Message { msg: MsgStop, .. } => {
+                false
+            }
             _ => {
-                // TODO
+                error!("unexpected message recevied");
                 false
             }
         }

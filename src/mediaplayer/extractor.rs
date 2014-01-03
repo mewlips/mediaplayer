@@ -8,8 +8,8 @@ use std::mem::size_of;
 use std::cast::{transmute};
 use component_manager::{Component,ComponentStruct,ExtractorComponent,
                         VideoDecoderComponent,AudioDecoderComponent,
-                        ManagerComponent,Message,MsgStart,MsgExtract,
-                        MsgError,MsgEOF,MsgPacketData};
+                        ManagerComponent,Message,MsgStart,MsgStop,
+                        MsgExtract,MsgError,MsgEOF,MsgPacketData};
 
 pub struct Extractor {
     component: Option<ComponentStruct>,
@@ -107,22 +107,44 @@ impl Extractor {
             match component.recv() {
                 Message { from: ManagerComponent, msg: MsgStart, .. } => {
                     info!("start Extractor");
-                    while Extractor::pump(&component, fmt_ctx,
-                                          video_index, audio_index) {
-                        match component.recv() {
-                            Message { msg: MsgExtract, .. } => {
-                                //debug!("MsgExtract");
-                            }
-                            _ => {
-                                fail!("unexpected message received");
-                            }
-                        }
-                    }
                 }
                 _ => {
                     fail!("unexpected message received");
                 }
             }
+            let mut stopped = false;
+            while Extractor::pump(&component, fmt_ctx,
+                                  video_index, audio_index) {
+                match component.recv() {
+                    Message { msg: MsgExtract, .. } => {
+                        //debug!("MsgExtract");
+                    }
+                    Message { msg: MsgStop, .. } => {
+                        info!("stop Extractor");
+                        stopped = true;
+                        break;
+                    }
+                    _ => {
+                        error!("unexpected message received");
+                        break;
+                    }
+                }
+            }
+            if !stopped { loop {
+                match component.recv() {
+                    Message { msg: MsgExtract, .. } => {
+                        debug!("ignore MsgExtract");
+                    }
+                    Message { msg: MsgStop, .. } => {
+                        info!("stop Extractor");
+                        break;
+                    }
+                    _ => {
+                        error!("unexpected message received");
+                        break;
+                    }
+                }
+            }}
         }
     }
     fn pump(component: &ComponentStruct,
