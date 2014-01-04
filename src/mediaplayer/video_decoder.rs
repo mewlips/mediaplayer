@@ -123,6 +123,7 @@ impl VideoDecoder {
                 true
             }
             Message { msg: MsgStop, .. } => {
+                component.flush();
                 false
             }
             _ => {

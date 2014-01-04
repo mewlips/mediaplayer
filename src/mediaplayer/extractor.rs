@@ -120,6 +120,7 @@ impl Extractor {
                         //debug!("MsgExtract");
                     }
                     Message { msg: MsgStop, .. } => {
+                        component.flush();
                         info!("stop Extractor");
                         stopped = true;
                         break;

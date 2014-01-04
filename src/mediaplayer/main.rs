@@ -102,6 +102,7 @@ pub fn play(source: ~str) -> bool {
     'main: loop {
         match sdl::event::poll_event() {
             sdl::event::QuitEvent => {
+                mp.stop();
                 sdl::quit();
                 break;
             }
@@ -118,7 +119,11 @@ pub fn play(source: ~str) -> bool {
             }
             _ => {}
         }
-        util::usleep(33_000);
+        if mp.is_stopped() {
+            break;
+        } else {
+            util::usleep(100_000);
+        }
     }
 
     true

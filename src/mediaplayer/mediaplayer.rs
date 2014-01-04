@@ -6,7 +6,7 @@ use audio_decoder::AudioDecoder;
 use clock::Clock;
 use video_renderer::VideoRenderer;
 use audio_renderer::AudioRenderer;
-use component_manager::ComponentManager;
+use component_manager::{ComponentManager};
 
 enum DataSource {
     UrlSource(url::Url),
@@ -118,5 +118,11 @@ impl MediaPlayer {
         self.clock.get_mut_ref().start();
 
         self.component_mgr.start();
+    }
+    pub fn stop(&mut self) {
+        self.component_mgr.stop();
+    }
+    pub fn is_stopped(&self) -> bool {
+        !self.component_mgr.ping()
     }
 }

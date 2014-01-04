@@ -167,13 +167,14 @@ impl AudioDecoder {
                             }
                         }
                     } else {
-                        component.send(ExtractorComponent, MsgExtract)
+                        component.send(ExtractorComponent, MsgExtract);
                     }
                     avcodec::avcodec_free_frame(transmute(&frame));
                 }
                 true
             }
             Message { msg: MsgStop, .. } => {
+                component.flush();
                 false
             }
             _ => {

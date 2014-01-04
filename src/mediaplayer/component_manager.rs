@@ -51,15 +51,20 @@ impl ComponentStruct {
     pub fn take_chan(&mut self) -> Chan<Message> {
         self.chan.take().unwrap()
     }
-    pub fn send(&self, to: ComponentType, msg:MessageData) {
-        self.mgr_chan.get_ref().send(Message {
+    pub fn send(&self, to: ComponentType, msg:MessageData) -> bool {
+        self.mgr_chan.get_ref().try_send(Message {
             from: self.component_type,
             to: to,
             msg: msg
-        });
+        })
     }
     pub fn recv(&self) -> Message {
         self.port.recv()
+    }
+    pub fn flush(&self) {
+        while self.port.try_recv().is_some() {
+            debug!("{} flush", self.component_type);
+        }
     }
 }
 
@@ -71,6 +76,7 @@ pub struct Message {
 
 #[deriving(Clone)]
 pub enum MessageData {
+    MsgPing,
     MsgStart,
     MsgStop,
     MsgPts(f64),
@@ -80,6 +86,23 @@ pub enum MessageData {
     MsgAudioData(~AudioData),
     MsgError(~str),
     MsgEOF,
+}
+
+impl fmt::Default for MessageData {
+    fn fmt(t: &MessageData, f: &mut fmt::Formatter) {
+        match *t {
+            MsgPing          => write!(f.buf, "MsgPing"),
+            MsgStart         => write!(f.buf, "MsgStart"),
+            MsgStop          => write!(f.buf, "MsgStop"),
+            MsgPts(pts)      => write!(f.buf, "MsgPts({})", pts),
+            MsgExtract       => write!(f.buf, "MsgExtract"),
+            MsgPacketData(_) => write!(f.buf, "MsgPacketData(..)"),
+            MsgVideoData(_)  => write!(f.buf, "MsgVideoData(..)"),
+            MsgAudioData(_)  => write!(f.buf, "MsgAudioData(..)"),
+            MsgError(_)      => write!(f.buf, "MsgError(..)"),
+            MsgEOF           => write!(f.buf, "MsgEOF"),
+        }
+    }
 }
 
 pub trait Component {
@@ -126,32 +149,54 @@ impl ComponentManager {
             loop {
                 match port.recv() {
                     Message { from, to, msg } => {
-                        for &(component_type, ref chan) in components.iter() {
-                            if component_type == ManagerComponent {
-                                match msg {
-                                    MsgError(ref _err) => {
-                                        // TODO
-                                    }
-                                    MsgEOF => {
-                                        debug!("MsgEOF received");
-                                        broadcast(MsgStop);
-                                    }
-                                    _ => {
-                                    }
+                        //debug!("from = {}, to = {}, msg = {}", from, to, msg);
+                        if to == ManagerComponent {
+                            match msg {
+                                MsgPing => {
+                                    // Nothing to do
                                 }
-                            } else if component_type == to {
-                                //println!("{} --> {}", from, to);
-                                chan.send(Message {
-                                    from: from,
-                                    to: to,
-                                    msg: msg
-                                });
-                                break;
+                                MsgError(ref _err) => {
+                                    // TODO
+                                }
+                                MsgEOF => {
+                                    debug!("MsgEOF received");
+                                    broadcast(MsgStop);
+                                    break;
+                                }
+                                _ => {
+                                }
+                            }
+                        } else {
+                            for &(component_type, ref chan) in components.iter() {
+                                if component_type == to {
+                                    //println!("{} --> {}", from, to);
+                                    chan.send(Message {
+                                        from: from,
+                                        to: to,
+                                        msg: msg
+                                    });
+                                    break;
+                                }
                             }
                         }
                     }
                 }
             }
+            debug!("stop ComponentManager");
         }
+    }
+    pub fn stop(&self) {
+        self.msg_chan.send(Message {
+            from: ManagerComponent,
+            to: ManagerComponent,
+            msg: MsgEOF
+        });
+    }
+    pub fn ping(&self) -> bool {
+        self.msg_chan.try_send(Message {
+            from: ManagerComponent,
+            to: ManagerComponent,
+            msg: MsgPing
+        })
     }
 }

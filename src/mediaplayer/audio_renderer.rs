@@ -152,6 +152,7 @@ impl AudioRenderer {
                         }
                     }
                     Message { msg: MsgStop, .. } => {
+                        component.flush();
                         break;
                     }
                     _ => {

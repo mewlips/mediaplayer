@@ -49,6 +49,7 @@ impl Clock {
                         }
                     }
                     Message { msg: MsgStop, .. } => {
+                        component.flush();
                         break;
                     }
                     _ => {

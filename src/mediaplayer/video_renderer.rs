@@ -91,6 +91,7 @@ impl VideoRenderer {
                 true
             }
             Message { msg: MsgStop, .. } => {
+                component.flush();
                 false
             }
             _ => {
