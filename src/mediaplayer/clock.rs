@@ -57,7 +57,7 @@ impl Clock {
                     }
                 }
                 let elapse_time = Clock::get_time() - last_clock;
-                clock += elapse_time + 0.0001f64;
+                clock += elapse_time; // + 0.0001f64;
                 //debug!("current = {}", clock);
             }
             info!("stop Clock");

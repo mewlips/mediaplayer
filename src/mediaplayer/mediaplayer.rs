@@ -107,11 +107,15 @@ impl MediaPlayer {
     }
     pub fn start(&mut self) {
         self.extractor.get_mut_ref().start();
-        self.video_decoder.get_mut_ref().start();
-        self.audio_decoder.get_mut_ref().start();
+        if self.audio_decoder.is_some() {
+            self.audio_decoder.get_mut_ref().start();
+            self.audio_renderer.get_mut_ref().start();
+        }
+        if self.video_decoder.is_some() {
+            self.video_decoder.get_mut_ref().start();
+            self.video_renderer.get_mut_ref().start();
+        }
         self.clock.get_mut_ref().start();
-        self.video_renderer.get_mut_ref().start();
-        self.audio_renderer.get_mut_ref().start();
 
         self.component_mgr.start();
     }
