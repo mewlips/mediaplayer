@@ -25,6 +25,9 @@ mod audio_renderer;
 mod audio_pipe;
 mod clock;
 mod component_manager;
+mod ui;
+mod component;
+mod message;
 
 pub fn init() -> bool {
     unsafe {
@@ -72,6 +75,7 @@ pub fn main() {
     for source in sources.iter() {
         play(source.clone());
     }
+    sdl::quit();
 }
 
 pub fn print_usage(program: &str, _opts: &[Opt]) {
@@ -99,32 +103,7 @@ pub fn play(source: ~str) -> bool {
 
     mp.start();
 
-    'main: loop {
-        match sdl::event::poll_event() {
-            sdl::event::QuitEvent => {
-                mp.stop();
-                sdl::quit();
-                break;
-            }
-            /*sdl::event::MouseButtonEvent(button, state, _, _) => {
-                match button {
-                    sdl::event::LeftMouse if state => {
-                        mp.send_cmd(mediaplayer::Start);
-                    }
-                    _ => {
-                    }
-                }
-            }*/
-            sdl::event::NoEvent => {
-            }
-            _ => {}
-        }
-        if mp.is_stopped() {
-            break;
-        } else {
-            util::usleep(100_000);
-        }
-    }
+    mp.wait();
 
     true
 }

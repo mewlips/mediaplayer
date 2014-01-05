@@ -5,8 +5,8 @@ use audio_pipe::AudioPipe;
 use avcodec;
 use std::cast::transmute;
 use std::libc;
-use component_manager::{Component,ComponentStruct,AudioRendererComponent,
-                        ManagerComponent,Message,MsgStart,MsgAudioData,MsgStop};
+use component::{Component,ComponentStruct,AudioRendererComponent};
+use message::{Message,MsgAudioData,MsgStop};
 
 pub static SDL_AudioBufferSize: u16 = 1024;
 
@@ -124,14 +124,7 @@ impl AudioRenderer {
         let pipe_out = self.pipe_out.clone();
         let component = self.component.take().unwrap();
         do spawn {
-            match component.recv() {
-                Message { from: ManagerComponent, msg: MsgStart, .. } => {
-                    info!("start AudioRenderer");
-                }
-                _ => {
-                    fail!("unexpected message received");
-                }
-            }
+            component.wait_for_start();
             let mut paused = true;
             loop {
                 match component.recv() {

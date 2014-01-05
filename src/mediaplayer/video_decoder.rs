@@ -6,11 +6,10 @@ use std::libc::{c_int};
 use std::ptr::{to_mut_unsafe_ptr};
 use ffmpeg_decoder::{DecoderUserData,FFmpegDecoder};
 use std::mem::size_of;
-use component_manager::{Component,ComponentStruct,VideoDecoderComponent,
-                        ManagerComponent,ClockComponent,ExtractorComponent,
-                        VideoRendererComponent,
-                        Message,MsgPts,MsgStart,MsgStop,
-                        MsgExtract,MsgPacketData,MsgVideoData};
+use component::{Component,ComponentStruct,VideoDecoderComponent,
+                ClockComponent,ExtractorComponent,VideoRendererComponent};
+use message::{Message,MsgPts,MsgStop,
+              MsgExtract,MsgPacketData,MsgVideoData};
 
 #[deriving(Clone)]
 pub struct VideoData {
@@ -65,15 +64,7 @@ impl VideoDecoder {
         let time_base = self.decoder.time_base.clone();
         let component = self.component.take().unwrap();
         do spawn {
-            match component.recv() {
-                Message { from: ManagerComponent, msg: MsgStart, .. } => {
-                    info!("start VideoDecoder");
-                }
-                _ => {
-                    fail!("unexpected message received");
-                }
-            }
-
+            component.wait_for_start();
             while VideoDecoder::decode(&component, codec_ctx, time_base) {
                 ;
             }

@@ -7,6 +7,7 @@ use clock::Clock;
 use video_renderer::VideoRenderer;
 use audio_renderer::AudioRenderer;
 use component_manager::{ComponentManager};
+use ui::UI;
 
 enum DataSource {
     UrlSource(url::Url),
@@ -20,6 +21,7 @@ pub enum Command {
 
 pub struct MediaPlayer {
     component_mgr: ComponentManager,
+    mp_port: Port<bool>,
     source: Option<DataSource>,
     extractor: Option<Extractor>,
     video_decoder: Option<VideoDecoder>,
@@ -27,12 +29,15 @@ pub struct MediaPlayer {
     clock: Option<Clock>,
     video_renderer: Option<VideoRenderer>,
     audio_renderer: Option<AudioRenderer>,
+    ui: Option<UI>,
 }
 
 impl MediaPlayer {
     pub fn new() -> MediaPlayer {
+        let (mp_port, mp_chan) = Chan::<bool>::new();
         MediaPlayer {
-            component_mgr: ComponentManager::new(),
+            component_mgr: ComponentManager::new(mp_chan),
+            mp_port: mp_port,
             source: None,
             extractor: None,
             video_decoder: None,
@@ -40,6 +45,7 @@ impl MediaPlayer {
             clock: None,
             video_renderer: None,
             audio_renderer: None,
+            ui: None,
         }
     }
     pub fn set_url_source(&mut self, url: url::Url) {
@@ -103,6 +109,10 @@ impl MediaPlayer {
         let clock = self.clock.get_mut_ref();
         self.component_mgr.add(clock);
 
+        self.ui = Some(UI::new());
+        let ui = self.ui.get_mut_ref();
+        self.component_mgr.add(ui);
+
         true
     }
     pub fn start(&mut self) {
@@ -116,13 +126,17 @@ impl MediaPlayer {
             self.video_renderer.get_mut_ref().start();
         }
         self.clock.get_mut_ref().start();
+        self.ui.get_mut_ref().start();
 
         self.component_mgr.start();
     }
-    pub fn stop(&mut self) {
-        self.component_mgr.stop();
-    }
-    pub fn is_stopped(&self) -> bool {
-        !self.component_mgr.ping()
+    pub fn wait(&self) {
+        match self.mp_port.recv() {
+            true => {
+                info!("mediaplayer stopped");
+            }
+            false => {
+            }
+        }
     }
 }

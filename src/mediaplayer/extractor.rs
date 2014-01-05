@@ -6,10 +6,10 @@ use std::ptr::mut_null;
 use util;
 use std::mem::size_of;
 use std::cast::{transmute};
-use component_manager::{Component,ComponentStruct,ExtractorComponent,
-                        VideoDecoderComponent,AudioDecoderComponent,
-                        ManagerComponent,Message,MsgStart,MsgStop,
-                        MsgExtract,MsgError,MsgEOF,MsgPacketData};
+use component::{Component,ComponentStruct,ExtractorComponent,
+                VideoDecoderComponent,AudioDecoderComponent,ManagerComponent};
+use message::{Message,MsgStop,
+              MsgExtract,MsgError,MsgEOF,MsgPacketData};
 
 pub struct Extractor {
     component: Option<ComponentStruct>,
@@ -104,14 +104,7 @@ impl Extractor {
         let audio_index = self.audio_index.clone();
         let component = self.component.take().unwrap();
         do spawn {
-            match component.recv() {
-                Message { from: ManagerComponent, msg: MsgStart, .. } => {
-                    info!("start Extractor");
-                }
-                _ => {
-                    fail!("unexpected message received");
-                }
-            }
+            component.wait_for_start();
             let mut stopped = false;
             while Extractor::pump(&component, fmt_ctx,
                                   video_index, audio_index) {

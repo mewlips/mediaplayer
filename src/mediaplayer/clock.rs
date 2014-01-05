@@ -1,9 +1,9 @@
 use avutil::av_gettime;
 use util;
-use component_manager::{Component,ComponentStruct,AudioDecoderComponent,
-                        ManagerComponent,ExtractorComponent,
-                        VideoDecoderComponent,ClockComponent,
-                        Message,MsgStart,MsgStop,MsgPts,MsgExtract};
+use component::{Component,ComponentStruct,
+                AudioDecoderComponent,ExtractorComponent,
+                VideoDecoderComponent,ClockComponent};
+use message::{Message,MsgStop,MsgPts,MsgExtract,MsgPause};
 
 pub struct Clock {
     component: Option<ComponentStruct>,
@@ -25,16 +25,10 @@ impl Clock {
     pub fn start(&mut self) {
         let component = self.component.take().unwrap();
         do spawn {
-            match component.recv() {
-                Message { from: ManagerComponent, msg: MsgStart, .. } => {
-                    info!("start Clock");
-                }
-                _ => {
-                    fail!("unexpected message received");
-                }
-            }
-
-            let mut clock = 0f64;
+            component.wait_for_start();
+            let mut clock = 0.2f64;
+            let mut paused = false;
+            let mut extract_count = 0;
             loop {
                 let last_clock = Clock::get_time();
                 match component.recv() {
@@ -42,24 +36,36 @@ impl Clock {
                         //debug!("Clock: pts {} from {}", pts, from);
                         if from == VideoDecoderComponent ||
                            from == AudioDecoderComponent {
-                            if clock < pts {
-                                util::usleep(((pts - clock) * 1000_000f64) as int);
+                            if !paused {
+                                if clock < pts {
+                                    util::usleep(((pts - clock) * 1000_000f64) as int);
+                                }
+                                component.send(ExtractorComponent, MsgExtract);
+                            } else {
+                                extract_count += 1;
                             }
-                            component.send(ExtractorComponent, MsgExtract);
                         }
+                        let elapse_time = Clock::get_time() - last_clock;
+                        clock += elapse_time; // + 0.0001f64;
                     }
                     Message { msg: MsgStop, .. } => {
                         component.flush();
                         break;
+                    }
+                    Message { msg: MsgPause, .. } => {
+                        if paused {
+                            while extract_count > 0 {
+                                component.send(ExtractorComponent, MsgExtract);
+                                extract_count -= 1;
+                            }
+                        }
+                        paused = !paused;
                     }
                     _ => {
                         error!("unexpected message received");
                         break;
                     }
                 }
-                let elapse_time = Clock::get_time() - last_clock;
-                clock += elapse_time; // + 0.0001f64;
-                //debug!("current = {}", clock);
             }
             info!("stop Clock");
         }

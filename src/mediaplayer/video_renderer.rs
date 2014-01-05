@@ -5,8 +5,8 @@ use std::cast::{transmute};
 use std::libc::{c_int};
 use std::ptr::{null,mut_null};
 use swscale;
-use component_manager::{Component,ComponentStruct,VideoRendererComponent,
-                        ManagerComponent,Message,MsgStart,MsgStop,MsgVideoData};
+use component::{Component,ComponentStruct,VideoRendererComponent};
+use message::{Message,MsgStop,MsgVideoData};
 
 pub struct VideoRenderer {
     component: Option<ComponentStruct>,
@@ -47,14 +47,7 @@ impl VideoRenderer {
         let height = self.height.clone();
         let component = self.component.take().unwrap();
         do spawn {
-            match component.recv() {
-                Message { from: ManagerComponent, msg: MsgStart, .. } => {
-                    info!("start VideoReneder");
-                }
-                _ => {
-                    fail!("unexpected message received");
-                }
-            }
+            component.wait_for_start();
             while VideoRenderer::render(&component, screen, frame_rgb.clone(),
                                         width, height, sws_ctx.clone()) {
                 ;

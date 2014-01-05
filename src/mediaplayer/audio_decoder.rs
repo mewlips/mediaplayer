@@ -6,11 +6,9 @@ use std::cast::{transmute,transmute_immut_unsafe};
 use std::libc::c_int;
 use std::ptr::{mut_null,to_mut_unsafe_ptr};
 use std::vec;
-use component_manager::{Component,ComponentStruct,AudioDecoderComponent,
-                        AudioRendererComponent,
-                        ManagerComponent,ClockComponent,ExtractorComponent,
-                        Message,MsgStart,MsgStop,
-                        MsgPts,MsgExtract,MsgPacketData,MsgAudioData};
+use component::{Component,ComponentStruct,AudioDecoderComponent,
+                AudioRendererComponent,ClockComponent,ExtractorComponent};
+use message::{Message,MsgStop,MsgPts,MsgExtract,MsgPacketData,MsgAudioData};
 use swresample;
 use util;
 
@@ -112,14 +110,7 @@ impl AudioDecoder {
         let component = self.component.take().unwrap();
         let swr_ctx = self.swr_ctx.clone();
         do spawn {
-            match component.recv() {
-                Message { from: ManagerComponent, msg: MsgStart, .. } => {
-                    info!("start VideoDecoder");
-                }
-                _ => {
-                    fail!("unexpected message received");
-                }
-            }
+            component.wait_for_start();
             while AudioDecoder::decode(&component, codec_ctx,
                                        time_base, swr_ctx) {
                 ;
