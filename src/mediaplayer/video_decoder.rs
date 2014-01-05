@@ -8,7 +8,7 @@ use ffmpeg_decoder::{DecoderUserData,FFmpegDecoder};
 use std::mem::size_of;
 use component::{Component,ComponentStruct,VideoDecoderComponent,
                 ClockComponent,ExtractorComponent,VideoRendererComponent};
-use message::{Message,MsgPts,MsgStop,
+use message::{Message,MsgPts,MsgStop,MsgFlush,
               MsgExtract,MsgPacketData,MsgVideoData};
 
 #[deriving(Clone)]
@@ -116,6 +116,13 @@ impl VideoDecoder {
             Message { msg: MsgStop, .. } => {
                 component.flush();
                 false
+            }
+            Message { msg: MsgFlush, .. } => {
+                component.flush();
+                unsafe {
+                    avcodec::avcodec_flush_buffers(codec_ctx);
+                }
+                true
             }
             _ => {
                 error!("unexpected message recevied");

@@ -6,9 +6,10 @@ use std::ptr::mut_null;
 use util;
 use std::mem::size_of;
 use std::cast::{transmute};
+use std::libc::c_int;
 use component::{Component,ComponentStruct,ExtractorComponent,
                 VideoDecoderComponent,AudioDecoderComponent,ManagerComponent};
-use message::{Message,MsgStop,
+use message::{Message,MsgStop,MsgSeek,MsgFlush,
               MsgExtract,MsgError,MsgEOF,MsgPacketData};
 
 pub struct Extractor {
@@ -17,6 +18,8 @@ pub struct Extractor {
     streams: ~[AVStream],
     video_index: Option<int>,
     audio_index: Option<int>,
+    video_time_base: Option<avutil::AVRational>,
+    audio_time_base: Option<avutil::AVRational>,
 }
 
 impl Extractor {
@@ -27,6 +30,8 @@ impl Extractor {
             streams: ~[],
             video_index: None,
             audio_index: None,
+            video_time_base: None,
+            audio_time_base: None,
         };
 
         if extractor.fmt_ctx.is_null() {
@@ -87,8 +92,10 @@ impl Extractor {
                 if count == 0 {
                     if type_ == avutil::AVMEDIA_TYPE_VIDEO {
                         self.video_index = Some(av_stream.get_index());
+                        self.video_time_base = Some(av_stream.get_time_base());
                     } else if type_ == avutil::AVMEDIA_TYPE_AUDIO {
                         self.audio_index = Some(av_stream.get_index());
+                        self.audio_time_base = Some(av_stream.get_time_base());
                     }
                     return Some(av_stream);
                 } else {
@@ -102,6 +109,8 @@ impl Extractor {
         let fmt_ctx = self.fmt_ctx.clone();
         let video_index = self.video_index.clone();
         let audio_index = self.audio_index.clone();
+        let video_time_base = self.video_time_base.clone();
+        let audio_time_base = self.audio_time_base.clone();
         let component = self.component.take().unwrap();
         do spawn {
             component.wait_for_start();
@@ -117,6 +126,12 @@ impl Extractor {
                         info!("stop Extractor");
                         stopped = true;
                         break;
+                    }
+                    Message { msg: MsgSeek(pts, flag), .. } => {
+                        let seek_pos = (pts * avutil::AV_TIME_BASE as f64) as i64;
+                        Extractor::seek(&component, fmt_ctx, seek_pos, flag,
+                                        video_index, audio_index,
+                                        video_time_base, audio_time_base);
                     }
                     _ => {
                         error!("unexpected message received");
@@ -185,6 +200,40 @@ impl Extractor {
             component.send(ManagerComponent, MsgEOF);
             return false;
         }
+    }
+    fn seek(component: &ComponentStruct,
+            fmt_ctx: *mut avformat::AVFormatContext,
+            seek_pos: i64, flags: c_int,
+            video_index: Option<int>, audio_index: Option<int>,
+            video_time_base: Option<avutil::AVRational>,
+            audio_time_base: Option<avutil::AVRational>) -> bool {
+        //debug!("seek(), pos = {}, flags = {}", seek_pos, flags);
+        let mut stream_index;
+        let seek_target = unsafe {
+            if video_index.is_some() {
+                stream_index = video_index.unwrap();
+                avutil::av_rescale_q(seek_pos, avutil::AV_TIME_BASE_Q,
+                                     video_time_base.unwrap())
+            } else /*audio_index.is_some()*/ {
+                stream_index = audio_index.unwrap();
+                avutil::av_rescale_q(seek_pos, avutil::AV_TIME_BASE_Q,
+                                     audio_time_base.unwrap())
+            }
+        };
+        //debug!("seek(), seek_target = {}, index = {}", seek_target, stream_index);
+        let result = unsafe {
+            avformat::av_seek_frame(
+                fmt_ctx, stream_index as i32, seek_target, flags)
+        };
+        if result < 0 {
+            error!("seek failed");
+            return false;
+        }
+
+        component.send(VideoDecoderComponent, MsgFlush);
+        component.send(AudioDecoderComponent, MsgFlush);
+
+        true
     }
 }
 

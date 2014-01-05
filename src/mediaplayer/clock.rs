@@ -2,8 +2,8 @@ use avutil::av_gettime;
 use util;
 use component::{Component,ComponentStruct,
                 AudioDecoderComponent,ExtractorComponent,
-                VideoDecoderComponent,ClockComponent};
-use message::{Message,MsgStop,MsgPts,MsgExtract,MsgPause};
+                VideoDecoderComponent,ClockComponent,UiComponent};
+use message::{Message,MsgStop,MsgPts,MsgExtract,MsgPause,MsgSeek};
 
 pub struct Clock {
     component: Option<ComponentStruct>,
@@ -26,7 +26,8 @@ impl Clock {
         let component = self.component.take().unwrap();
         do spawn {
             component.wait_for_start();
-            let mut clock = 0.2f64;
+            let latency = 0.2f64;
+            let mut clock = latency;
             let mut paused = false;
             let mut extract_count = 0;
             loop {
@@ -45,6 +46,7 @@ impl Clock {
                                 extract_count += 1;
                             }
                         }
+                        component.send(UiComponent, MsgPts(clock));
                         let elapse_time = Clock::get_time() - last_clock;
                         clock += elapse_time; // + 0.0001f64;
                     }
@@ -60,6 +62,9 @@ impl Clock {
                             }
                         }
                         paused = !paused;
+                    }
+                    Message { msg: MsgSeek(seek_pts,_), .. } => {
+                        clock = seek_pts;
                     }
                     _ => {
                         error!("unexpected message received");

@@ -8,7 +8,8 @@ use std::ptr::{mut_null,to_mut_unsafe_ptr};
 use std::vec;
 use component::{Component,ComponentStruct,AudioDecoderComponent,
                 AudioRendererComponent,ClockComponent,ExtractorComponent};
-use message::{Message,MsgStop,MsgPts,MsgExtract,MsgPacketData,MsgAudioData};
+use message::{Message,MsgStop,MsgPts,MsgExtract,
+              MsgPacketData,MsgAudioData,MsgFlush};
 use swresample;
 use util;
 
@@ -167,6 +168,13 @@ impl AudioDecoder {
             Message { msg: MsgStop, .. } => {
                 component.flush();
                 false
+            }
+            Message { msg: MsgFlush, .. } => {
+                component.flush();
+                unsafe {
+                    avcodec::avcodec_flush_buffers(codec_ctx);
+                }
+                true
             }
             _ => {
                 error!("unexpected message received");
