@@ -46,14 +46,14 @@ impl VideoRenderer {
         let width = self.width.clone();
         let height = self.height.clone();
         let component = self.component.take().unwrap();
-        do spawn {
+        spawn(proc() {
             component.wait_for_start();
             while VideoRenderer::render(&component, screen, frame_rgb.clone(),
                                         width, height, sws_ctx.clone()) {
                 ;
             }
             info!("stop VideoRenderer");
-        }
+        })
     }
 
     fn render(component: &ComponentStruct,

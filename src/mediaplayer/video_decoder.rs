@@ -63,13 +63,13 @@ impl VideoDecoder {
         let codec_ctx = self.decoder.codec_ctx.clone();
         let time_base = self.decoder.time_base.clone();
         let component = self.component.take().unwrap();
-        do spawn {
+        spawn(proc() {
             component.wait_for_start();
             while VideoDecoder::decode(&component, codec_ctx, time_base) {
                 ;
             }
             info!("stop VideoDecoder");
-        }
+        })
     }
     fn decode(component: &ComponentStruct,
               codec_ctx: *mut avcodec::AVCodecContext,

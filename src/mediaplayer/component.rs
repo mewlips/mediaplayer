@@ -1,3 +1,4 @@
+use std::comm::{TryRecvResult,Empty,Disconnected,Data};
 use std::fmt;
 use message::{Message,MessageData,MsgStart};
 
@@ -13,7 +14,7 @@ pub enum ComponentType {
     UiComponent,
 }
 
-impl fmt::Default for ComponentType {
+impl fmt::Show for ComponentType {
     fn fmt(t: &ComponentType, f: &mut fmt::Formatter) {
         match *t {
             ManagerComponent       => write!(f.buf, "ComponentManager"),
@@ -61,12 +62,22 @@ impl ComponentStruct {
     pub fn recv(&self) -> Message {
         self.port.recv()
     }
-    pub fn try_recv(&self) -> Option<Message> {
+    pub fn try_recv(&self) -> TryRecvResult<Message> {
         self.port.try_recv()
     }
     pub fn flush(&self) {
-        while self.port.try_recv().is_some() {
-            debug!("{} flush", self.component_type);
+        loop {
+            match self.port.try_recv() {
+                Empty => {
+                    break
+                }
+                Disconnected => {
+                    break;
+                }
+                Data(msg) => {
+                    debug!("{} flush", self.component_type);
+                }
+            }
         }
     }
     pub fn wait_for_start(&self) {

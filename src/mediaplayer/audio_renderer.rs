@@ -123,7 +123,7 @@ impl AudioRenderer {
 
         let pipe_out = self.pipe_out.clone();
         let component = self.component.take().unwrap();
-        do spawn {
+        spawn(proc() {
             component.wait_for_start();
             let mut paused = true;
             loop {
@@ -155,7 +155,7 @@ impl AudioRenderer {
                 }
             }
             info!("stop AudioRenderer");
-        }
+        })
     }
 }
 

@@ -80,8 +80,8 @@ pub fn main() {
 
 pub fn print_usage(program: &str, _opts: &[Opt]) {
     println!("Usage: {} [options] <files>...", program);
-    println("\n[options]");
-    println("  -h, --help\t: show usage.");
+    println!("\n[options]");
+    println!("  -h, --help\t: show usage.");
 }
 
 pub fn play(source: ~str) -> bool {

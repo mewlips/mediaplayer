@@ -1,3 +1,4 @@
+use std::comm::{Data};
 use component::{Component,ComponentStruct,ManagerComponent,
                 ClockComponent,UiComponent,ExtractorComponent};
 use message::{Message,MsgEOF,MsgStop,MsgPause,MsgPts,MsgSeek};
@@ -17,7 +18,7 @@ impl UI {
     }
     pub fn start(&mut self) {
         let component = self.component.take().unwrap();
-        do spawn {
+        spawn(proc() {
             component.wait_for_start();
             let mut clock = 0f64;
             loop {
@@ -44,10 +45,10 @@ impl UI {
                     }
                 }
                 match component.try_recv() {
-                    Some(Message { msg: MsgStop, .. }) => {
+                    Data(Message { msg: MsgStop, .. }) => {
                         break;
                     }
-                    Some(Message { msg: MsgPts(pts), ..}) => {
+                    Data(Message { msg: MsgPts(pts), ..}) => {
                         print!("\r{}", pts);
                         ::std::io::stdio::flush();
                         clock = pts;
@@ -58,7 +59,7 @@ impl UI {
                 util::usleep(10_000);
             }
             info!("stop UI");
-        }
+        })
     }
 }
 

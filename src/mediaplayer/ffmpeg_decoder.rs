@@ -64,7 +64,7 @@ impl FFmpegDecoder {
 
 impl Drop for FFmpegDecoder {
     fn drop(&mut self) {
-        println("FFmpegDecoder::drop()");
+        println!("FFmpegDecoder::drop()");
         unsafe {
             if !(*self.codec_ctx).opaque.is_null() {
                 avutil::av_freep(transmute(&mut (*self.codec_ctx).opaque));

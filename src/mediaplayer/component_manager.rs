@@ -31,7 +31,7 @@ impl ComponentManager {
         debug!("ComponentManager::start()");
         let components = self.components.take().unwrap();
         let mp_chan = self.mp_chan.take().unwrap();
-        do spawn {
+        spawn(proc() {
             let broadcast = |msg: MessageData| {
                 for &(component_type, ref chan) in components.iter() {
                     chan.send(Message::new(ManagerComponent, component_type,
@@ -69,6 +69,6 @@ impl ComponentManager {
             }
             debug!("stop ComponentManager");
             mp_chan.send(true);
-        }
+        })
     }
 }

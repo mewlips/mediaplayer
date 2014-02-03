@@ -110,14 +110,14 @@ impl AudioDecoder {
         let time_base = self.decoder.time_base.clone();
         let component = self.component.take().unwrap();
         let swr_ctx = self.swr_ctx.clone();
-        do spawn {
+        spawn(proc() {
             component.wait_for_start();
             while AudioDecoder::decode(&component, codec_ctx,
                                        time_base, swr_ctx) {
                 ;
             }
             info!("stop AudioDecoder");
-        }
+        })
     }
     fn decode(component: &ComponentStruct,
               codec_ctx: *mut avcodec::AVCodecContext,

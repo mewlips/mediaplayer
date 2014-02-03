@@ -24,7 +24,7 @@ impl Clock {
     }
     pub fn start(&mut self) {
         let component = self.component.take().unwrap();
-        do spawn {
+        spawn(proc() {
             component.wait_for_start();
             let latency = 0.2f64;
             let mut clock = latency;
@@ -73,7 +73,7 @@ impl Clock {
                 }
             }
             info!("stop Clock");
-        }
+        })
     }
 }
 

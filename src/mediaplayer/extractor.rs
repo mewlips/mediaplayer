@@ -112,7 +112,7 @@ impl Extractor {
         let video_time_base = self.video_time_base.clone();
         let audio_time_base = self.audio_time_base.clone();
         let component = self.component.take().unwrap();
-        do spawn {
+        spawn(proc() {
             component.wait_for_start();
             let mut stopped = false;
             while Extractor::pump(&component, fmt_ctx,
@@ -154,7 +154,7 @@ impl Extractor {
                     }
                 }
             }}
-        }
+        })
     }
     fn pump(component: &ComponentStruct,
             fmt_ctx: *mut avformat::AVFormatContext,

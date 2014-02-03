@@ -37,7 +37,7 @@ pub enum MessageData {
     MsgFlush,
 }
 
-impl fmt::Default for MessageData {
+impl fmt::Show for MessageData {
     fn fmt(t: &MessageData, f: &mut fmt::Formatter) {
         match *t {
             MsgStart           => write!(f.buf, "MsgStart"),
