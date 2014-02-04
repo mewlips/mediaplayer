@@ -72,33 +72,28 @@ impl MediaPlayer {
                 return false;
             }
         }
-        let extractor = self.extractor.get_mut_ref();
-        self.component_mgr.add(extractor);
-        match extractor.get_stream(avutil::AVMEDIA_TYPE_VIDEO, 0) {
+        self.component_mgr.add(self.extractor.get_mut_ref());
+        match self.extractor.get_mut_ref().get_stream(avutil::AVMEDIA_TYPE_VIDEO, 0) {
             Some(video_stream) => {
                 self.video_decoder = VideoDecoder::new(video_stream);
-                let video_decoder = self.video_decoder.get_mut_ref();
-                self.component_mgr.add(video_decoder);
-                let width = video_decoder.width;
-                let height = video_decoder.height;
-                let pix_fmt = video_decoder.pix_fmt;
+                self.component_mgr.add(self.video_decoder.get_mut_ref());
+                let width = self.video_decoder.get_mut_ref().width;
+                let height = self.video_decoder.get_mut_ref().height;
+                let pix_fmt = self.video_decoder.get_mut_ref().pix_fmt;
                 self.video_renderer = Some(VideoRenderer::new(width, height, pix_fmt));
-                let video_renderer = self.video_renderer.get_mut_ref();
-                self.component_mgr.add(video_renderer);
+                self.component_mgr.add(self.video_renderer.get_mut_ref());
             }
             None => {
                 debug!("no video stream found");
             }
         }
-        match extractor.get_stream(avutil::AVMEDIA_TYPE_AUDIO, 0) {
+        match self.extractor.get_mut_ref().get_stream(avutil::AVMEDIA_TYPE_AUDIO, 0) {
             Some(audio_stream) => {
                 self.audio_decoder = AudioDecoder::new(audio_stream);
-                let audio_decoder = self.audio_decoder.get_mut_ref();
-                self.component_mgr.add(audio_decoder);
-                let codec_ctx = audio_decoder.decoder.codec_ctx.clone();
+                self.component_mgr.add(self.audio_decoder.get_mut_ref());
+                let codec_ctx = self.audio_decoder.get_mut_ref().decoder.codec_ctx.clone();
                 self.audio_renderer = AudioRenderer::new(codec_ctx);
-                let audio_renderer = self.audio_renderer.get_mut_ref();
-                self.component_mgr.add(audio_renderer);
+                self.component_mgr.add(self.audio_renderer.get_mut_ref());
             }
             None => {
                 debug!("no audio stream found");

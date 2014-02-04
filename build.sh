@@ -10,4 +10,4 @@ for pkg_path in $RUST_PATH; do
 done
 IFS="$old_ifs"
 
-rustc $LIBS --out-dir bin src/mediaplayer/main.rs
+rustc $LIBS --link-args -lSDL src/mediaplayer/main.rs -o bin/mediaplayer
