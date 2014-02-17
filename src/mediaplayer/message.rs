@@ -38,8 +38,8 @@ pub enum MessageData {
 }
 
 impl fmt::Show for MessageData {
-    fn fmt(t: &MessageData, f: &mut fmt::Formatter) {
-        match *t {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
             MsgStart           => write!(f.buf, "MsgStart"),
             MsgStop            => write!(f.buf, "MsgStop"),
             MsgPause           => write!(f.buf, "MsgPause"),

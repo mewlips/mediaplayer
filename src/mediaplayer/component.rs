@@ -15,8 +15,8 @@ pub enum ComponentType {
 }
 
 impl fmt::Show for ComponentType {
-    fn fmt(t: &ComponentType, f: &mut fmt::Formatter) {
-        match *t {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
             ManagerComponent       => write!(f.buf, "ComponentManager"),
             ExtractorComponent     => write!(f.buf, "Extractor"),
             AudioDecoderComponent  => write!(f.buf, "AudioDecoder"),
@@ -31,7 +31,7 @@ impl fmt::Show for ComponentType {
 
 pub struct ComponentStruct {
     component_type: ComponentType,
-    mgr_chan: Option<SharedChan<Message>>,
+    mgr_chan: Option<Chan<Message>>,
     port: Port<Message>,
     chan: Option<Chan<Message>>,
 }
@@ -46,7 +46,7 @@ impl ComponentStruct {
             chan: Some(chan),
         }
     }
-    pub fn set_mgr_chan(&mut self, chan: SharedChan<Message>) {
+    pub fn set_mgr_chan(&mut self, chan: Chan<Message>) {
         self.mgr_chan = Some(chan);
     }
     pub fn take_chan(&mut self) -> Chan<Message> {
@@ -74,7 +74,7 @@ impl ComponentStruct {
                 Disconnected => {
                     break;
                 }
-                Data(msg) => {
+                Data(_msg) => {
                     debug!("{} flush", self.component_type);
                 }
             }

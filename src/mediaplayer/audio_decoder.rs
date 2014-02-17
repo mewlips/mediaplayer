@@ -4,7 +4,7 @@ use avutil;
 use ffmpeg_decoder::FFmpegDecoder;
 use std::cast::{transmute,transmute_immut_unsafe};
 use std::libc::c_int;
-use std::ptr::{mut_null,to_mut_unsafe_ptr};
+use std::ptr::{mut_null};
 use std::vec;
 use component::{Component,ComponentStruct,AudioDecoderComponent,
                 AudioRendererComponent,ClockComponent,ExtractorComponent};
@@ -129,7 +129,7 @@ impl AudioDecoder {
                 unsafe {
                     let frame = avcodec::avcodec_alloc_frame();
                     avcodec::avcodec_decode_audio4(
-                        codec_ctx, frame, to_mut_unsafe_ptr(&mut got_frame),
+                        codec_ctx, frame, &mut got_frame,
                         transmute_immut_unsafe(packet));
                     let pts = (*packet).pts as f64 * avutil::av_q2d(time_base);
                     avcodec::av_free_packet(packet);

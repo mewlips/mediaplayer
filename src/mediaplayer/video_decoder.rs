@@ -3,7 +3,6 @@ use av_stream::AVStream;
 use avutil;
 use std::cast::{transmute,transmute_immut_unsafe};
 use std::libc::{c_int};
-use std::ptr::{to_mut_unsafe_ptr};
 use ffmpeg_decoder::{DecoderUserData,FFmpegDecoder};
 use std::mem::size_of;
 use component::{Component,ComponentStruct,VideoDecoderComponent,
@@ -83,7 +82,7 @@ impl VideoDecoder {
                     let user_data: *mut DecoderUserData = transmute((*codec_ctx).opaque);
                     (*user_data).pts = (*packet).pts as u64;
                     avcodec::avcodec_decode_video2(codec_ctx, frame,
-                                                   to_mut_unsafe_ptr(&mut got_frame),
+                                                   &mut got_frame,
                                                    transmute_immut_unsafe(packet));
                     if (*packet).dts == avutil::AV_NOPTS_VALUE &&
                        !(*frame).opaque.is_null() {

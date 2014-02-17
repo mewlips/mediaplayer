@@ -5,12 +5,12 @@ pub struct ComponentManager {
     priv mp_chan: Option<Chan<bool>>,
     priv components: Option<~[(ComponentType, Chan<Message>)]>,
     priv msg_port: Option<Port<Message>>,
-    priv msg_chan: SharedChan<Message>,
+    priv msg_chan: Chan<Message>,
 }
 
 impl ComponentManager {
     pub fn new(mp_chan: Chan<bool>) -> ComponentManager {
-        let (port, chan) = SharedChan::<Message>::new();
+        let (port, chan) = Chan::<Message>::new();
         ComponentManager {
             mp_chan: Some(mp_chan),
             components: Some(~[]),

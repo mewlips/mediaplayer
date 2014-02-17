@@ -1,13 +1,14 @@
-extern mod avcodec;
-extern mod avformat;
-extern mod avutil;
-extern mod extra;
-extern mod sdl;
-extern mod swscale;
-extern mod swresample;
+extern crate avcodec;
+extern crate avformat;
+extern crate avutil;
+extern crate extra;
+extern crate getopts;
+extern crate sdl;
+extern crate swscale;
+extern crate swresample;
 
 use avformat::av_register_all;
-use extra::getopts::{getopts,optflag,Opt};
+use getopts::{getopts,optflag,OptGroup};
 use extra::url;
 use mediaplayer::MediaPlayer;
 use std::libc::consts::os::c95::EXIT_FAILURE;
@@ -51,8 +52,7 @@ pub fn main() {
     let args = os::args();
     let program = args[0].clone();
     let opts = ~[
-        optflag("h"),
-        optflag("help")
+        optflag("h", "help", "show help"),
     ];
 
     let matches = match getopts(args.tail(), opts) {
@@ -78,7 +78,7 @@ pub fn main() {
     sdl::quit();
 }
 
-pub fn print_usage(program: &str, _opts: &[Opt]) {
+pub fn print_usage(program: &str, _opts: &[OptGroup]) {
     println!("Usage: {} [options] <files>...", program);
     println!("\n[options]");
     println!("  -h, --help\t: show usage.");
