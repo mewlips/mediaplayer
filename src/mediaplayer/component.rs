@@ -31,43 +31,43 @@ impl fmt::Show for ComponentType {
 
 pub struct ComponentStruct {
     component_type: ComponentType,
-    mgr_chan: Option<Chan<Message>>,
-    port: Port<Message>,
-    chan: Option<Chan<Message>>,
+    mgr_sender: Option<Sender<Message>>,
+    receiver: Receiver<Message>,
+    sender: Option<Sender<Message>>,
 }
 
 impl ComponentStruct {
     pub fn new(component_type: ComponentType) -> ComponentStruct {
-        let (port, chan) = Chan::<Message>::new();
+        let (sender, receiver) = channel::<Message>();
         ComponentStruct {
             component_type: component_type,
-            mgr_chan: None,
-            port: port,
-            chan: Some(chan),
+            mgr_sender: None,
+            receiver: receiver,
+            sender: Some(sender),
         }
     }
-    pub fn set_mgr_chan(&mut self, chan: Chan<Message>) {
-        self.mgr_chan = Some(chan);
+    pub fn set_mgr_sender(&mut self, sender: Sender<Message>) {
+        self.mgr_sender= Some(sender);
     }
-    pub fn take_chan(&mut self) -> Chan<Message> {
-        self.chan.take().unwrap()
+    pub fn take_sender(&mut self) -> Sender<Message> {
+        self.sender.take().unwrap()
     }
     pub fn send(&self, to: ComponentType, msg:MessageData) -> bool {
-        self.mgr_chan.get_ref().try_send(Message {
+        self.mgr_sender.get_ref().try_send(Message {
             from: self.component_type,
             to: to,
             msg: msg
         })
     }
     pub fn recv(&self) -> Message {
-        self.port.recv()
+        self.receiver.recv()
     }
     pub fn try_recv(&self) -> TryRecvResult<Message> {
-        self.port.try_recv()
+        self.receiver.try_recv()
     }
     pub fn flush(&self) {
         loop {
-            match self.port.try_recv() {
+            match self.receiver.try_recv() {
                 Empty => {
                     break
                 }

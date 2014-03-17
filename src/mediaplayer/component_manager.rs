@@ -1,46 +1,47 @@
 use component::{ComponentType,Component,ManagerComponent};
 use message::{Message,MessageData,MsgStart,MsgEOF,MsgError,MsgStop};
+use std::vec_ng::Vec;
 
 pub struct ComponentManager {
-    priv mp_chan: Option<Chan<bool>>,
-    priv components: Option<~[(ComponentType, Chan<Message>)]>,
-    priv msg_port: Option<Port<Message>>,
-    priv msg_chan: Chan<Message>,
+    priv mp_sender: Option<Sender<bool>>,
+    priv components: Option<Vec<(ComponentType, Sender<Message>)>>,
+    priv msg_receiver: Option<Receiver<Message>>,
+    priv msg_sender: Sender<Message>,
 }
 
 impl ComponentManager {
-    pub fn new(mp_chan: Chan<bool>) -> ComponentManager {
-        let (port, chan) = Chan::<Message>::new();
+    pub fn new(mp_sender: Sender<bool>) -> ComponentManager {
+        let (sender, receiver) = channel::<Message>();
         ComponentManager {
-            mp_chan: Some(mp_chan),
-            components: Some(~[]),
-            msg_port: Some(port),
-            msg_chan: chan,
+            mp_sender: Some(mp_sender),
+            components: Some(vec!()),
+            msg_receiver: Some(receiver),
+            msg_sender: sender,
         }
     }
     pub fn add(&mut self, component: &mut Component) {
         let component = component.get();
         let component_type = component.component_type;
-        let chan = component.take_chan();
-        component.set_mgr_chan(self.msg_chan.clone());
-        self.components.get_mut_ref().push((component_type, chan));
+        let sender = component.take_sender();
+        component.set_mgr_sender(self.msg_sender.clone());
+        self.components.get_mut_ref().push((component_type, sender));
         info!("new component add: {}", component.component_type);
     }
     pub fn start(&mut self) {
-        let port = self.msg_port.take().unwrap();
+        let receiver = self.msg_receiver.take().unwrap();
         debug!("ComponentManager::start()");
         let components = self.components.take().unwrap();
-        let mp_chan = self.mp_chan.take().unwrap();
+        let mp_sender= self.mp_sender.take().unwrap();
         spawn(proc() {
             let broadcast = |msg: MessageData| {
-                for &(component_type, ref chan) in components.iter() {
-                    chan.send(Message::new(ManagerComponent, component_type,
+                for &(component_type, ref sender) in components.iter() {
+                    sender.send(Message::new(ManagerComponent, component_type,
                                            msg.clone()));
                 }
             };
             broadcast(MsgStart);
             loop {
-                match port.recv() {
+                match receiver.recv() {
                     Message { from, to, msg } => {
                         //debug!("from = {}, to = {}, msg = {}", from, to, msg);
                         if to == ManagerComponent {
@@ -57,9 +58,9 @@ impl ComponentManager {
                                 }
                             }
                         } else {
-                            for &(component_type, ref chan) in components.iter() {
+                            for &(component_type, ref sender) in components.iter() {
                                 if component_type == to {
-                                    chan.send(Message::new(from, to, msg));
+                                    sender.send(Message::new(from, to, msg));
                                     break;
                                 }
                             }
@@ -68,7 +69,7 @@ impl ComponentManager {
                 }
             }
             debug!("stop ComponentManager");
-            mp_chan.send(true);
+            mp_sender.send(true);
         })
     }
 }

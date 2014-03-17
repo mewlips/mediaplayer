@@ -1,4 +1,3 @@
-use extra::url;
 use extractor::Extractor;
 use avutil;
 use video_decoder::VideoDecoder;
@@ -8,6 +7,7 @@ use video_renderer::VideoRenderer;
 use audio_renderer::AudioRenderer;
 use component_manager::{ComponentManager};
 use ui::UI;
+use url;
 
 enum DataSource {
     UrlSource(url::Url),
@@ -21,7 +21,7 @@ pub enum Command {
 
 pub struct MediaPlayer {
     component_mgr: ComponentManager,
-    mp_port: Port<bool>,
+    mp_receiver: Receiver<bool>,
     source: Option<DataSource>,
     extractor: Option<Extractor>,
     video_decoder: Option<VideoDecoder>,
@@ -34,10 +34,10 @@ pub struct MediaPlayer {
 
 impl MediaPlayer {
     pub fn new() -> MediaPlayer {
-        let (mp_port, mp_chan) = Chan::<bool>::new();
+        let (mp_sender, mp_receiver) = channel::<bool>();
         MediaPlayer {
-            component_mgr: ComponentManager::new(mp_chan),
-            mp_port: mp_port,
+            component_mgr: ComponentManager::new(mp_sender),
+            mp_receiver: mp_receiver,
             source: None,
             extractor: None,
             video_decoder: None,
@@ -126,7 +126,7 @@ impl MediaPlayer {
         self.component_mgr.start();
     }
     pub fn wait(&self) {
-        match self.mp_port.recv() {
+        match self.mp_receiver.recv() {
             true => {
                 info!("mediaplayer stopped");
             }

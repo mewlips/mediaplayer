@@ -1,15 +1,18 @@
+#[feature(phase)];
+
 extern crate avcodec;
 extern crate avformat;
 extern crate avutil;
-extern crate extra;
 extern crate getopts;
+#[phase(syntax, link)]
+extern crate log;
 extern crate sdl;
 extern crate swscale;
 extern crate swresample;
+extern crate url;
 
 use avformat::av_register_all;
 use getopts::{getopts,optflag,OptGroup};
-use extra::url;
 use mediaplayer::MediaPlayer;
 use std::libc::consts::os::c95::EXIT_FAILURE;
 use std::os;

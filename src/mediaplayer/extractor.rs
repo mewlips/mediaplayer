@@ -7,6 +7,7 @@ use util;
 use std::mem::size_of;
 use std::cast::{transmute};
 use std::libc::c_int;
+use std::vec_ng::Vec;
 use component::{Component,ComponentStruct,ExtractorComponent,
                 VideoDecoderComponent,AudioDecoderComponent,ManagerComponent};
 use message::{Message,MsgStop,MsgSeek,MsgFlush,
@@ -15,7 +16,7 @@ use message::{Message,MsgStop,MsgSeek,MsgFlush,
 pub struct Extractor {
     component: Option<ComponentStruct>,
     priv fmt_ctx: *mut avformat::AVFormatContext,
-    streams: ~[AVStream],
+    streams: Vec<AVStream>,
     video_index: Option<int>,
     audio_index: Option<int>,
     video_time_base: Option<avutil::AVRational>,
@@ -27,7 +28,7 @@ impl Extractor {
         let mut extractor = Extractor {
             component: Some(ComponentStruct::new(ExtractorComponent)),
             fmt_ctx: unsafe { avformat::avformat_alloc_context() },
-            streams: ~[],
+            streams: vec!(),
             video_index: None,
             audio_index: None,
             video_time_base: None,
@@ -69,7 +70,7 @@ impl Extractor {
                 avutil::AVMEDIA_TYPE_VIDEO => info!("video stream found"),
                 type_ => info!("stream found (type = {})", type_)
             }
-            extractor.streams = extractor.streams + ~[av_stream];
+            extractor.streams.push(av_stream);
         }
 
         Some(extractor)

@@ -2,10 +2,11 @@ use avcodec;
 use av_stream::AVStream;
 use avutil;
 use ffmpeg_decoder::FFmpegDecoder;
+use std::c_vec::CVec;
 use std::cast::{transmute,transmute_immut_unsafe};
 use std::libc::c_int;
 use std::ptr::{mut_null};
-use std::vec;
+use std::vec_ng::Vec;
 use component::{Component,ComponentStruct,AudioDecoderComponent,
                 AudioRendererComponent,ClockComponent,ExtractorComponent};
 use message::{Message,MsgStop,MsgPts,MsgExtract,
@@ -15,12 +16,12 @@ use util;
 
 #[deriving(Clone)]
 pub struct AudioData {
-    chunk: ~[u8],
+    chunk: Vec<u8>,
     pts: f64,
 }
 
 impl AudioData {
-    pub fn new(chunk: ~[u8], pts: f64) -> AudioData {
+    pub fn new(chunk: Vec<u8>, pts: f64) -> AudioData {
         AudioData {
             chunk: chunk,
             pts: pts,
@@ -151,11 +152,11 @@ impl AudioDecoder {
                                 }
                             }
                             None => {
+                                let cv = CVec::<u8>::new(transmute((*frame).data[0]),
+                                                        data_size as uint);
+                                let v = Vec::from_slice(cv.as_slice());
                                 component.send(AudioRendererComponent,
-                                    MsgAudioData(~AudioData::new(
-                                        vec::from_buf::<u8>(
-                                            transmute_immut_unsafe((*frame).data[0]),
-                                            data_size as uint), pts)));
+                                    MsgAudioData(~AudioData::new(v, pts)));
                             }
                         }
                     } else {
@@ -183,7 +184,7 @@ impl AudioDecoder {
         }
     }
     fn resample(swr_ctx: &mut swresample::SwrContext,
-                frame: &mut avcodec::AVFrame) -> Option<~[u8]> {
+                frame: &mut avcodec::AVFrame) -> Option<Vec<u8>> {
         let mut resampled_out: *mut u8 = mut_null();
         let mut resample_lines: c_int = 0;
         let resample_size: i64 = unsafe {
@@ -217,7 +218,8 @@ impl AudioDecoder {
         }
 
         let resampled = unsafe {
-            vec::from_buf::<u8>(transmute(resampled_out), out_bytes as uint)
+            let cv = CVec::<u8>::new(transmute(resampled_out), out_bytes as uint);
+            Vec::from_slice(cv.as_slice())
         };
 
         unsafe {

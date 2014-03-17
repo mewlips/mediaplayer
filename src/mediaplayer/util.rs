@@ -1,11 +1,11 @@
-use std::vec::{from_elem};
+use std::vec_ng::Vec;
 use std::libc::{c_int,size_t};
 use avutil;
 
 pub fn av_strerror(e: i32) -> ~str {
-    let mut buf = from_elem(128, 0_u8);
+    let mut buf = Vec::from_elem(128, 0_u8);
     let len = buf.len();
-    let ptr = buf.as_mut_ptr();
+    let ptr = buf.as_mut_slice().as_mut_ptr();
     unsafe {
         avutil::av_strerror(-(e as c_int), ptr as *mut i8, len as size_t);
     }
