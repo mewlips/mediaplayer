@@ -1,6 +1,5 @@
 use component::{ComponentType,Component,ManagerComponent};
 use message::{Message,MessageData,MsgStart,MsgEOF,MsgError,MsgStop};
-use std::vec_ng::Vec;
 
 pub struct ComponentManager {
     priv mp_sender: Option<Sender<bool>>,

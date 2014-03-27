@@ -1,4 +1,3 @@
-use std::vec_ng::Vec;
 use std::libc::{c_int,size_t};
 use avutil;
 

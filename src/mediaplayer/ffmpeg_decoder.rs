@@ -2,7 +2,7 @@ use avcodec;
 use av_stream::AVStream;
 use avutil;
 use std::ptr::{mut_null};
-use std::cast::{transmute,transmute_immut_unsafe};
+use std::cast::{transmute};
 use util;
 use std::mem::size_of;
 
@@ -39,8 +39,7 @@ impl FFmpegDecoder {
         }
         let mut options = mut_null();
         let result = unsafe {
-            avcodec::avcodec_open2(codec_ctx, transmute_immut_unsafe(decoder),
-                                   &mut options)
+            avcodec::avcodec_open2(codec_ctx, &*decoder, &mut options)
         };
         if result < 0 {
             error!("AVError: {}", util::av_strerror(result));

@@ -7,7 +7,6 @@ use util;
 use std::mem::size_of;
 use std::cast::{transmute};
 use std::libc::c_int;
-use std::vec_ng::Vec;
 use component::{Component,ComponentStruct,ExtractorComponent,
                 VideoDecoderComponent,AudioDecoderComponent,ManagerComponent};
 use message::{Message,MsgStop,MsgSeek,MsgFlush,

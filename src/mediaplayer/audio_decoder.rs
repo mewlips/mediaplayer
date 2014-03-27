@@ -3,10 +3,9 @@ use av_stream::AVStream;
 use avutil;
 use ffmpeg_decoder::FFmpegDecoder;
 use std::c_vec::CVec;
-use std::cast::{transmute,transmute_immut_unsafe};
+use std::cast::{transmute};
 use std::libc::c_int;
 use std::ptr::{mut_null};
-use std::vec_ng::Vec;
 use component::{Component,ComponentStruct,AudioDecoderComponent,
                 AudioRendererComponent,ClockComponent,ExtractorComponent};
 use message::{Message,MsgStop,MsgPts,MsgExtract,
@@ -130,8 +129,7 @@ impl AudioDecoder {
                 unsafe {
                     let frame = avcodec::avcodec_alloc_frame();
                     avcodec::avcodec_decode_audio4(
-                        codec_ctx, frame, &mut got_frame,
-                        transmute_immut_unsafe(packet));
+                        codec_ctx, frame, &mut got_frame, &*packet);
                     let pts = (*packet).pts as f64 * avutil::av_q2d(time_base);
                     avcodec::av_free_packet(packet);
                     if got_frame != 0 {
