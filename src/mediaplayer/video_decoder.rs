@@ -2,7 +2,7 @@ use avcodec;
 use av_stream::AVStream;
 use avutil;
 use std::cast::{transmute};
-use std::libc::{c_int};
+use libc::{c_int};
 use ffmpeg_decoder::{DecoderUserData,FFmpegDecoder};
 use std::mem::size_of;
 use component::{Component,ComponentStruct,VideoDecoderComponent,
@@ -12,8 +12,8 @@ use message::{Message,MsgPts,MsgStop,MsgFlush,
 
 #[deriving(Clone)]
 pub struct VideoData {
-    frame: *mut avcodec::AVFrame,
-    pts: f64,
+    pub frame: *mut avcodec::AVFrame,
+    pub pts: f64,
 }
 
 impl VideoData {
@@ -26,11 +26,11 @@ impl VideoData {
 }
 
 pub struct VideoDecoder {
-    component: Option<ComponentStruct>,
-    decoder: FFmpegDecoder,
-    width: int,
-    height: int,
-    pix_fmt: avutil::Enum_AVPixelFormat,
+    pub component: Option<ComponentStruct>,
+    pub decoder: FFmpegDecoder,
+    pub width: int,
+    pub height: int,
+    pub pix_fmt: avutil::Enum_AVPixelFormat,
 }
 
 impl VideoDecoder {

@@ -20,16 +20,16 @@ pub enum Command {
 }
 
 pub struct MediaPlayer {
-    component_mgr: ComponentManager,
-    mp_receiver: Receiver<bool>,
-    source: Option<DataSource>,
-    extractor: Option<Extractor>,
-    video_decoder: Option<VideoDecoder>,
-    audio_decoder: Option<AudioDecoder>,
-    clock: Option<Clock>,
-    video_renderer: Option<VideoRenderer>,
-    audio_renderer: Option<AudioRenderer>,
-    ui: Option<UI>,
+    pub component_mgr: ComponentManager,
+    pub mp_receiver: Receiver<bool>,
+    pub source: Option<DataSource>,
+    pub extractor: Option<Extractor>,
+    pub video_decoder: Option<VideoDecoder>,
+    pub audio_decoder: Option<AudioDecoder>,
+    pub clock: Option<Clock>,
+    pub video_renderer: Option<VideoRenderer>,
+    pub audio_renderer: Option<AudioRenderer>,
+    pub ui: Option<UI>,
 }
 
 impl MediaPlayer {

@@ -2,10 +2,10 @@ use component::{ComponentType,Component,ManagerComponent};
 use message::{Message,MessageData,MsgStart,MsgEOF,MsgError,MsgStop};
 
 pub struct ComponentManager {
-    priv mp_sender: Option<Sender<bool>>,
-    priv components: Option<Vec<(ComponentType, Sender<Message>)>>,
-    priv msg_receiver: Option<Receiver<Message>>,
-    priv msg_sender: Sender<Message>,
+    mp_sender: Option<Sender<bool>>,
+    components: Option<Vec<(ComponentType, Sender<Message>)>>,
+    msg_receiver: Option<Receiver<Message>>,
+    msg_sender: Sender<Message>,
 }
 
 impl ComponentManager {

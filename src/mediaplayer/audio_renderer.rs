@@ -1,10 +1,10 @@
-use std::libc::c_int;
+use libc;
+use libc::c_int;
 use std::os;
 use sdl::audio;
 use audio_pipe::AudioPipe;
 use avcodec;
 use std::cast::transmute;
-use std::libc;
 use component::{Component,ComponentStruct,AudioRendererComponent};
 use message::{Message,MsgAudioData,MsgStop};
 
@@ -12,18 +12,18 @@ pub static SDL_AudioBufferSize: u16 = 1024;
 
 mod audio_alt {
     use sdl::audio::{AudioFormat,Channels,ll,ObtainedAudioSpec};
-    use std::libc::{c_int,c_void};
+    use libc::{c_int,c_void};
     use std::ptr::null;
     use std::cast::{transmute};
     use audio_pipe::AudioPipe;
     use std::cast::forget;
 
     pub struct DesiredAudioSpec {
-        freq: c_int,
-        format: AudioFormat,
-        channels: Channels,
-        samples: u16,
-        userdata: *c_void,
+        pub freq: c_int,
+        pub format: AudioFormat,
+        pub channels: Channels,
+        pub samples: u16,
+        pub userdata: *c_void,
     }
 
     impl DesiredAudioSpec {
@@ -84,10 +84,10 @@ mod audio_alt {
 
 
 pub struct AudioRenderer {
-    component: Option<ComponentStruct>,
-    codec_ctx: *mut avcodec::AVCodecContext,
-    pipe_out: c_int,
-    audio_pipe: AudioPipe,
+    pub component: Option<ComponentStruct>,
+    pub codec_ctx: *mut avcodec::AVCodecContext,
+    pub pipe_out: c_int,
+    pub audio_pipe: AudioPipe,
 }
 
 impl AudioRenderer {

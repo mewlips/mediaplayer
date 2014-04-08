@@ -6,20 +6,20 @@ use std::ptr::mut_null;
 use util;
 use std::mem::size_of;
 use std::cast::{transmute};
-use std::libc::c_int;
+use libc::c_int;
 use component::{Component,ComponentStruct,ExtractorComponent,
                 VideoDecoderComponent,AudioDecoderComponent,ManagerComponent};
 use message::{Message,MsgStop,MsgSeek,MsgFlush,
               MsgExtract,MsgError,MsgEOF,MsgPacketData};
 
 pub struct Extractor {
-    component: Option<ComponentStruct>,
-    priv fmt_ctx: *mut avformat::AVFormatContext,
-    streams: Vec<AVStream>,
-    video_index: Option<int>,
-    audio_index: Option<int>,
-    video_time_base: Option<avutil::AVRational>,
-    audio_time_base: Option<avutil::AVRational>,
+    pub component: Option<ComponentStruct>,
+    fmt_ctx: *mut avformat::AVFormatContext,
+    pub streams: Vec<AVStream>,
+    pub video_index: Option<int>,
+    pub audio_index: Option<int>,
+    pub video_time_base: Option<avutil::AVRational>,
+    pub audio_time_base: Option<avutil::AVRational>,
 }
 
 impl Extractor {

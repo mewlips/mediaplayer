@@ -30,10 +30,10 @@ impl fmt::Show for ComponentType {
 }
 
 pub struct ComponentStruct {
-    component_type: ComponentType,
-    mgr_sender: Option<Sender<Message>>,
-    receiver: Receiver<Message>,
-    sender: Option<Sender<Message>>,
+    pub component_type: ComponentType,
+    pub mgr_sender: Option<Sender<Message>>,
+    pub receiver: Receiver<Message>,
+    pub sender: Option<Sender<Message>>,
 }
 
 impl ComponentStruct {

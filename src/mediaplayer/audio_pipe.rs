@@ -1,9 +1,9 @@
-use std::libc::c_int;
-use std::libc;
+use libc::c_int;
+use libc;
 use std::cast::transmute;
 
 pub struct AudioPipe {
-    pipe_input: c_int,
+    pub pipe_input: c_int,
 }
 
 impl AudioPipe {

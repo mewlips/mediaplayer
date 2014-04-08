@@ -1,9 +1,10 @@
-#[feature(phase)];
+#![feature(phase)]
 
 extern crate avcodec;
 extern crate avformat;
 extern crate avutil;
 extern crate getopts;
+extern crate libc;
 #[phase(syntax, link)]
 extern crate log;
 extern crate sdl;
@@ -14,7 +15,7 @@ extern crate url;
 use avformat::av_register_all;
 use getopts::{getopts,optflag,OptGroup};
 use mediaplayer::MediaPlayer;
-use std::libc::consts::os::c95::EXIT_FAILURE;
+use libc::consts::os::c95::EXIT_FAILURE;
 use std::os;
 
 mod av_stream;

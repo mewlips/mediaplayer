@@ -1,4 +1,4 @@
-use std::libc::{c_int,size_t};
+use libc::{c_int,size_t};
 use avutil;
 
 pub fn av_strerror(e: i32) -> ~str {
@@ -12,7 +12,7 @@ pub fn av_strerror(e: i32) -> ~str {
 }
 
 mod ffi {
-    use std::libc::c_int;
+    use libc::c_int;
     extern "C" {
         pub fn usleep(usec: c_int) -> c_int;
     }

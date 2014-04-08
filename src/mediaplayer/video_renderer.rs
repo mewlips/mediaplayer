@@ -2,17 +2,17 @@ use avcodec;
 use avutil;
 use sdl;
 use std::cast::{transmute};
-use std::libc::{c_int};
+use libc::{c_int};
 use std::ptr::{null,mut_null};
 use swscale;
 use component::{Component,ComponentStruct,VideoRendererComponent};
 use message::{Message,MsgStop,MsgVideoData};
 
 pub struct VideoRenderer {
-    component: Option<ComponentStruct>,
-    width: int,
-    height: int,
-    pix_fmt: avutil::Enum_AVPixelFormat,
+    pub component: Option<ComponentStruct>,
+    pub width: int,
+    pub height: int,
+    pub pix_fmt: avutil::Enum_AVPixelFormat,
 }
 
 impl VideoRenderer {

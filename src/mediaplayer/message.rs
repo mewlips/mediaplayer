@@ -3,12 +3,12 @@ use std::fmt;
 use audio_decoder::AudioData;
 use video_decoder::VideoData;
 use avcodec;
-use std::libc::c_int;
+use libc::c_int;
 
 pub struct Message {
-    from: ComponentType,
-    to: ComponentType,
-    msg: MessageData
+    pub from: ComponentType,
+    pub to: ComponentType,
+    pub msg: MessageData
 }
 
 impl Message {

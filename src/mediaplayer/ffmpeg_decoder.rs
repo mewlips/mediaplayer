@@ -7,15 +7,15 @@ use util;
 use std::mem::size_of;
 
 pub struct DecoderUserData {
-    pts: u64,
+    pub pts: u64,
 }
 
 pub struct FFmpegDecoder {
-    codec_ctx: *mut avcodec::AVCodecContext,
-    codec: *avcodec::AVCodec,
-    decoder: *mut avcodec::AVCodec,
-    options: *mut avutil::AVDictionary,
-    time_base: avutil::AVRational
+    pub codec_ctx: *mut avcodec::AVCodecContext,
+    pub codec: *avcodec::AVCodec,
+    pub decoder: *mut avcodec::AVCodec,
+    pub options: *mut avutil::AVDictionary,
+    pub time_base: avutil::AVRational
 }
 
 impl FFmpegDecoder {

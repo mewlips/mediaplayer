@@ -6,8 +6,8 @@ use component::{Component,ComponentStruct,
 use message::{Message,MsgStop,MsgPts,MsgExtract,MsgPause,MsgSeek};
 
 pub struct Clock {
-    component: Option<ComponentStruct>,
-    media_clock: f64,
+    pub component: Option<ComponentStruct>,
+    pub media_clock: f64,
 }
 
 impl Clock {

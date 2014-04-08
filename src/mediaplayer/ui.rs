@@ -7,7 +7,7 @@ use sdl;
 use avformat;
 
 pub struct UI {
-    component: Option<ComponentStruct>,
+    pub component: Option<ComponentStruct>,
 }
 
 impl UI {

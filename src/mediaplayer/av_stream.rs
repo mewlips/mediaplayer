@@ -1,10 +1,10 @@
 use avformat;
 use avutil;
-use std::libc::{c_uint};
+use libc::{c_uint};
 
 #[deriving(Clone)]
 pub struct AVStream {
-    av_stream: *mut avformat::AVStream,
+    pub av_stream: *mut avformat::AVStream,
 }
 
 impl AVStream {
@@ -38,9 +38,9 @@ impl AVStream {
 }
 
 pub struct AVStreamIterator {
-    nb_streams: c_uint,
-    offset: c_uint,
-    streams: *mut *mut avformat::AVStream
+    pub nb_streams: c_uint,
+    pub offset: c_uint,
+    pub streams: *mut *mut avformat::AVStream
 }
 
 impl Iterator<AVStream> for AVStreamIterator {

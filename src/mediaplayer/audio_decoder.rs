@@ -4,7 +4,7 @@ use avutil;
 use ffmpeg_decoder::FFmpegDecoder;
 use std::c_vec::CVec;
 use std::cast::{transmute};
-use std::libc::c_int;
+use libc::c_int;
 use std::ptr::{mut_null};
 use component::{Component,ComponentStruct,AudioDecoderComponent,
                 AudioRendererComponent,ClockComponent,ExtractorComponent};
@@ -15,8 +15,8 @@ use util;
 
 #[deriving(Clone)]
 pub struct AudioData {
-    chunk: Vec<u8>,
-    pts: f64,
+    pub chunk: Vec<u8>,
+    pub pts: f64,
 }
 
 impl AudioData {
@@ -29,9 +29,9 @@ impl AudioData {
 }
 
 pub struct AudioDecoder {
-    component: Option<ComponentStruct>,
-    decoder: FFmpegDecoder,
-    swr_ctx: Option<*mut swresample::SwrContext>,
+    pub component: Option<ComponentStruct>,
+    pub decoder: FFmpegDecoder,
+    pub swr_ctx: Option<*mut swresample::SwrContext>,
 }
 
 impl AudioDecoder {
