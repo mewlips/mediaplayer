@@ -1,4 +1,3 @@
-use std::comm::{Data};
 use component::{Component,ComponentStruct,ManagerComponent,
                 ClockComponent,UiComponent,ExtractorComponent};
 use message::{Message,MsgEOF,MsgStop,MsgPause,MsgPts,MsgSeek};
@@ -45,10 +44,10 @@ impl UI {
                     }
                 }
                 match component.try_recv() {
-                    Data(Message { msg: MsgStop, .. }) => {
+                    Ok(Message { msg: MsgStop, .. }) => {
                         break;
                     }
-                    Data(Message { msg: MsgPts(pts), ..}) => {
+                    Ok(Message { msg: MsgPts(pts), ..}) => {
                         print!("\r{}", pts);
                         ::std::io::stdio::flush();
                         clock = pts;

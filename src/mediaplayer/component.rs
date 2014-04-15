@@ -1,4 +1,4 @@
-use std::comm::{TryRecvResult,Empty,Disconnected,Data};
+use std::comm::{TryRecvError,Empty,Disconnected};
 use std::fmt;
 use message::{Message,MessageData,MsgStart};
 
@@ -53,29 +53,32 @@ impl ComponentStruct {
         self.sender.take().unwrap()
     }
     pub fn send(&self, to: ComponentType, msg:MessageData) -> bool {
-        self.mgr_sender.get_ref().try_send(Message {
-            from: self.component_type,
-            to: to,
-            msg: msg
-        })
+        match self.mgr_sender.get_ref().send_opt(Message {
+                from: self.component_type,
+                to: to,
+                msg: msg
+            }) {
+            Ok(_) => true,
+            Err(_) => false
+        }
     }
     pub fn recv(&self) -> Message {
         self.receiver.recv()
     }
-    pub fn try_recv(&self) -> TryRecvResult<Message> {
+    pub fn try_recv(&self) -> Result<Message, TryRecvError> {
         self.receiver.try_recv()
     }
     pub fn flush(&self) {
         loop {
             match self.receiver.try_recv() {
-                Empty => {
+                Ok(_msg) => {
+                    debug!("{} flush", self.component_type);
+                }
+                Err(Empty) => {
                     break
                 }
-                Disconnected => {
+                Err(Disconnected) => {
                     break;
-                }
-                Data(_msg) => {
-                    debug!("{} flush", self.component_type);
                 }
             }
         }
