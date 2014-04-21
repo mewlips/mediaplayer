@@ -42,8 +42,8 @@ impl VideoDecoder {
                 let height = codec_ctx.height as int;
                 let pix_fmt = codec_ctx.pix_fmt;
                 unsafe {
-                    (*decoder.codec_ctx).get_buffer = get_buffer;
-                    (*decoder.codec_ctx).release_buffer = release_buffer;
+                    (*decoder.codec_ctx).get_buffer = Some(get_buffer);
+                    (*decoder.codec_ctx).release_buffer = Some(release_buffer);
                 }
                 Some(VideoDecoder {
                     component: Some(ComponentStruct::new(VideoDecoderComponent)),

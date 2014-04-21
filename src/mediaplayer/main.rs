@@ -1,15 +1,15 @@
 #![feature(phase)]
 
-extern crate avcodec;
-extern crate avformat;
-extern crate avutil;
+extern crate avcodec = "avcodec54";
+extern crate avformat = "avformat54";
+extern crate avutil = "avutil52";
 extern crate getopts;
 extern crate libc;
 #[phase(syntax, link)]
 extern crate log;
 extern crate sdl;
-extern crate swscale;
-extern crate swresample;
+extern crate swscale = "swscale2";
+extern crate swresample = "swresample0";
 extern crate url;
 
 use avformat::av_register_all;
