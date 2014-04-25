@@ -1,4 +1,5 @@
-use libc::{c_int,size_t};
+use libc::{c_int,c_uint,size_t};
+use libc::funcs::posix88::unistd;
 use avutil;
 
 pub fn av_strerror(e: i32) -> ~str {
@@ -11,16 +12,9 @@ pub fn av_strerror(e: i32) -> ~str {
     buf.to_str()
 }
 
-mod ffi {
-    use libc::c_int;
-    extern "C" {
-        pub fn usleep(usec: c_int) -> c_int;
-    }
-}
-
 pub fn usleep(usec: int) -> int {
     unsafe {
-        ffi::usleep(usec as c_int) as int
+        unistd::usleep(usec as c_uint) as int
     }
 }
 
