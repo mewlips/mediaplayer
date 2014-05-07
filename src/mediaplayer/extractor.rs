@@ -164,7 +164,7 @@ impl Extractor {
             transmute(avutil::av_malloc(size as u64))
         };
         if packet.is_null() {
-            component.send(ManagerComponent, MsgError(~"Allocation failed"));
+            component.send(ManagerComponent, MsgError("Allocation failed"));
             return false;
         }
 

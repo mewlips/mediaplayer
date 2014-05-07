@@ -31,7 +31,7 @@ pub enum MessageData {
     MsgPacketData(*mut avcodec::AVPacket),
     MsgVideoData(~VideoData),
     MsgAudioData(~AudioData),
-    MsgError(~str),
+    MsgError(&'static str),
     MsgEOF,
     MsgSeek(f64,c_int),
     MsgFlush,
