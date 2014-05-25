@@ -1,7 +1,7 @@
 use avcodec;
 use avutil;
 use sdl;
-use std::cast::{transmute};
+use std::mem::{transmute};
 use libc::{c_int};
 use std::ptr::{null,mut_null};
 use swscale;
@@ -48,7 +48,7 @@ impl VideoRenderer {
         let component = self.component.take().unwrap();
         spawn(proc() {
             component.wait_for_start();
-            while VideoRenderer::render(&component, screen, frame_rgb.clone(),
+            while VideoRenderer::render(&component, &screen, frame_rgb.clone(),
                                         width, height, sws_ctx.clone()) {
                 ;
             }
@@ -58,7 +58,7 @@ impl VideoRenderer {
 
     fn render(component: &ComponentStruct,
               screen: &sdl::video::Surface,
-              frame_rgb: *mut avcodec::AVFrame,
+              frame_rgb: *mut avutil::AVFrame,
               width: int, height: int,
               sws_ctx: *mut swscale::Struct_SwsContext) -> bool {
         match component.recv() {

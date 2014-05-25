@@ -17,14 +17,14 @@ pub enum ComponentType {
 impl fmt::Show for ComponentType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            ManagerComponent       => write!(f.buf, "ComponentManager"),
-            ExtractorComponent     => write!(f.buf, "Extractor"),
-            AudioDecoderComponent  => write!(f.buf, "AudioDecoder"),
-            VideoDecoderComponent  => write!(f.buf, "VideoDecoder"),
-            ClockComponent         => write!(f.buf, "Clock"),
-            AudioRendererComponent => write!(f.buf, "AudioRenderer"),
-            VideoRendererComponent => write!(f.buf, "VideoRenderer"),
-            UiComponent            => write!(f.buf, "UI"),
+            ManagerComponent       => write!(f, "ComponentManager"),
+            ExtractorComponent     => write!(f, "Extractor"),
+            AudioDecoderComponent  => write!(f, "AudioDecoder"),
+            VideoDecoderComponent  => write!(f, "VideoDecoder"),
+            ClockComponent         => write!(f, "Clock"),
+            AudioRendererComponent => write!(f, "AudioRenderer"),
+            VideoRendererComponent => write!(f, "VideoRenderer"),
+            UiComponent            => write!(f, "UI"),
         }
     }
 }

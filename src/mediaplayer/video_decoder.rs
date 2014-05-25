@@ -1,7 +1,7 @@
 use avcodec;
 use av_stream::AVStream;
 use avutil;
-use std::cast::{transmute};
+use std::mem::{transmute};
 use libc::{c_int};
 use ffmpeg_decoder::{DecoderUserData,FFmpegDecoder};
 use std::mem::size_of;
@@ -12,12 +12,12 @@ use message::{Message,MsgPts,MsgStop,MsgFlush,
 
 #[deriving(Clone)]
 pub struct VideoData {
-    pub frame: *mut avcodec::AVFrame,
+    pub frame: *mut avutil::AVFrame,
     pub pts: f64,
 }
 
 impl VideoData {
-    pub fn new(frame: *mut avcodec::AVFrame, pts: f64) -> VideoData {
+    pub fn new(frame: *mut avutil::AVFrame, pts: f64) -> VideoData {
         VideoData {
             frame: frame,
             pts: pts
@@ -105,7 +105,7 @@ impl VideoDecoder {
                         component.send(ClockComponent, MsgPts(pts.clone()));
                         //debug!("send frame = {}", frame);
                         component.send(VideoRendererComponent,
-                                       MsgVideoData(~VideoData::new(frame,pts)));
+                                       MsgVideoData(VideoData::new(frame,pts)));
                     } else {
                         component.send(ExtractorComponent, MsgExtract);
                     }
@@ -144,7 +144,7 @@ impl Component for VideoDecoder {
 }
 
 extern fn get_buffer(codec_ctx: *mut avcodec::AVCodecContext,
-                     pic: *mut avcodec::AVFrame) -> c_int {
+                     pic: *mut avutil::AVFrame) -> c_int {
     let ret = unsafe {
         avcodec::avcodec_default_get_buffer(codec_ctx, pic)
     };
@@ -159,7 +159,7 @@ extern fn get_buffer(codec_ctx: *mut avcodec::AVCodecContext,
 }
 
 extern fn release_buffer(codec_ctx: *mut avcodec::AVCodecContext,
-                         pic: *mut avcodec::AVFrame) {
+                         pic: *mut avutil::AVFrame) {
     unsafe {
         avcodec::avcodec_default_release_buffer(codec_ctx, pic);
     }

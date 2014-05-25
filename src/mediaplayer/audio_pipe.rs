@@ -1,6 +1,6 @@
 use libc::c_int;
 use libc;
-use std::cast::transmute;
+use std::mem::transmute;
 
 pub struct AudioPipe {
     pub pipe_input: c_int,

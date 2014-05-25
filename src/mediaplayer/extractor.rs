@@ -5,7 +5,7 @@ use av_stream::{AVStream,AVStreamIterator};
 use std::ptr::mut_null;
 use util;
 use std::mem::size_of;
-use std::cast::{transmute};
+use std::mem::{transmute};
 use libc::c_int;
 use component::{Component,ComponentStruct,ExtractorComponent,
                 VideoDecoderComponent,AudioDecoderComponent,ManagerComponent};

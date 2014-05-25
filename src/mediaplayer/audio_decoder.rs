@@ -3,7 +3,7 @@ use av_stream::AVStream;
 use avutil;
 use ffmpeg_decoder::FFmpegDecoder;
 use std::c_vec::CVec;
-use std::cast::{transmute};
+use std::mem::{transmute};
 use libc::c_int;
 use std::ptr::{mut_null};
 use component::{Component,ComponentStruct,AudioDecoderComponent,
@@ -143,7 +143,7 @@ impl AudioDecoder {
                                     &mut (*swr_ctx), &mut (*frame)) {
                                     Some(chunk) => {
                                         component.send(AudioRendererComponent,
-                                            MsgAudioData(~AudioData::new(
+                                            MsgAudioData(AudioData::new(
                                                 chunk, pts)));
                                     }
                                     None => {}
@@ -154,7 +154,7 @@ impl AudioDecoder {
                                                         data_size as uint);
                                 let v = Vec::from_slice(cv.as_slice());
                                 component.send(AudioRendererComponent,
-                                    MsgAudioData(~AudioData::new(v, pts)));
+                                    MsgAudioData(AudioData::new(v, pts)));
                             }
                         }
                     } else {
@@ -182,7 +182,7 @@ impl AudioDecoder {
         }
     }
     fn resample(swr_ctx: &mut swresample::SwrContext,
-                frame: &mut avcodec::AVFrame) -> Option<Vec<u8>> {
+                frame: &mut avutil::AVFrame) -> Option<Vec<u8>> {
         let mut resampled_out: *mut u8 = mut_null();
         let mut resample_lines: c_int = 0;
         let resample_size: i64 = unsafe {

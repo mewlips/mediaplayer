@@ -4,7 +4,7 @@ use std::os;
 use sdl::audio;
 use audio_pipe::AudioPipe;
 use avcodec;
-use std::cast::transmute;
+use std::mem::transmute;
 use component::{Component,ComponentStruct,AudioRendererComponent};
 use message::{Message,MsgAudioData,MsgStop};
 
@@ -14,9 +14,9 @@ mod audio_alt {
     use sdl::audio::{AudioFormat,Channels,ll,ObtainedAudioSpec};
     use libc::{c_int,c_void};
     use std::ptr::null;
-    use std::cast::{transmute};
+    use std::mem::{transmute};
     use audio_pipe::AudioPipe;
-    use std::cast::forget;
+    use std::mem::forget;
 
     pub struct DesiredAudioSpec {
         pub freq: c_int,
@@ -75,7 +75,7 @@ mod audio_alt {
 
     extern fn native_callback(userdata: *c_void, stream: *mut u8, len: c_int) {
         unsafe {
-            let mut audio_pipe: ~AudioPipe = transmute(userdata);
+            let mut audio_pipe: Box<AudioPipe> = transmute(userdata);
             audio_pipe.copy_to(stream, len as uint);
             forget(audio_pipe);
         }

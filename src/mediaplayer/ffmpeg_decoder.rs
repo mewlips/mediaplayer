@@ -2,7 +2,7 @@ use avcodec;
 use av_stream::AVStream;
 use avutil;
 use std::ptr::{mut_null};
-use std::cast::{transmute};
+use std::mem::{transmute};
 use util;
 use std::mem::size_of;
 

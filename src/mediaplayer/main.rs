@@ -1,7 +1,7 @@
 #![feature(phase)]
 
-extern crate avcodec = "avcodec54";
-extern crate avformat = "avformat54";
+extern crate avcodec = "avcodec55";
+extern crate avformat = "avformat55";
 extern crate avutil = "avutil52";
 extern crate getopts;
 extern crate libc;
@@ -54,7 +54,7 @@ pub fn init() -> bool {
 
 pub fn main() {
     let args = os::args();
-    let program = args[0].clone();
+    let program = args.get(0).clone();
     let opts = ~[
         optflag("h", "help", "show help"),
     ];
@@ -82,15 +82,15 @@ pub fn main() {
     sdl::quit();
 }
 
-pub fn print_usage(program: &str, _opts: &[OptGroup]) {
+pub fn print_usage(program: StrBuf, _opts: &[OptGroup]) {
     println!("Usage: {} [options] <files>...", program);
     println!("\n[options]");
     println!("  -h, --help\t: show usage.");
 }
 
-pub fn play(source: ~str) -> bool {
+pub fn play(source: StrBuf) -> bool {
     let mut mp = MediaPlayer::new();
-    match url::from_str(source) {
+    match url::from_str(source.as_slice()) {
         Ok(url) => {
             mp.set_url_source(url);
         }
