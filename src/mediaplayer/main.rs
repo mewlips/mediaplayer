@@ -82,13 +82,13 @@ pub fn main() {
     sdl::quit();
 }
 
-pub fn print_usage(program: StrBuf, _opts: &[OptGroup]) {
+pub fn print_usage(program: String, _opts: &[OptGroup]) {
     println!("Usage: {} [options] <files>...", program);
     println!("\n[options]");
     println!("  -h, --help\t: show usage.");
 }
 
-pub fn play(source: StrBuf) -> bool {
+pub fn play(source: String) -> bool {
     let mut mp = MediaPlayer::new();
     match url::from_str(source.as_slice()) {
         Ok(url) => {
