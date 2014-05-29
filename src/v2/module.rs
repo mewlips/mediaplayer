@@ -1,11 +1,13 @@
-use component::{Component,ComponentType};
+use component::{Extractor};
 
 pub trait Module {
     fn new() -> Self;
     fn get_name(&self) -> &'static str;
     fn init(&self) -> bool;
-    fn get_component(&self, component_type: ComponentType)
-        -> Option<Box<Component>>;
+    fn get_extractor(&self) -> Option<Box<Extractor>> {
+        None
+    }
+
 }
 
 pub struct ModuleManager {
@@ -23,10 +25,19 @@ impl ModuleManager {
         self.modules.push(module);
     }
     pub fn init(&self) -> bool {
-        true
+        self.modules.iter().all(|m| m.init())
     }
-    pub fn get_component(&self, component_type: ComponentType)
-            -> Option<Box<Component>> {
+    pub fn get_extractor(&self) -> Option<Box<Extractor>> {
+        for module in self.modules.iter() {
+            match module.get_extractor() {
+                Some(extractor) => {
+                    debug!("found {}.", extractor.get_name());
+                    return Some(extractor);
+                }
+                None => {
+                }
+            }
+        }
         None
     }
 }
@@ -37,7 +48,6 @@ mod tests {
     use module::tests::dummy::DummyModule;
 
     mod dummy {
-        use component::{Component,ComponentType};
         use module::Module;
 
         pub struct DummyModule;
@@ -51,10 +61,6 @@ mod tests {
             }
             fn init(&self) -> bool {
                 true
-            }
-            fn get_component(&self, component_type: ComponentType)
-                    -> Option<Box<Component>> {
-                None
             }
         }
     }

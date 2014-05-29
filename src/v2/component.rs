@@ -1,18 +1,22 @@
-pub enum ComponentType {
-    ExtractorComponent,
-    AudioDecoderComponent,
-    VideoDecoderComponent,
-    AudioRendererComponent,
-    VideoRendererComponent,
-}
-
 pub trait Component {
-    fn prepare(&mut self) -> bool;
-    fn start(&mut self) -> bool;
-    fn pause(&mut self) -> bool;
-    fn stop(&mut self) -> bool;
+    fn get_name(&self) -> &'static str;
+    fn prepare(&mut self) -> bool {
+        true
+    }
+    fn start(&mut self) -> bool {
+        true
+    }
+    fn pause(&mut self) -> bool {
+        true
+    }
+    fn stop(&mut self) -> bool {
+        true
+    }
 }
 
-pub trait Extractor {
-    fn seek(&mut self) -> bool;
+pub trait Extractor : Component {
+    fn set_source(&mut self, path: &Path) -> bool;
+    fn seek(&mut self) -> bool {
+        true
+    }
 }

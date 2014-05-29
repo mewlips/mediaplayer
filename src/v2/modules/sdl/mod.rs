@@ -1,4 +1,3 @@
-use component::{Component,ComponentType};
 use module::Module;
 use sdl;
 
@@ -26,10 +25,6 @@ impl Module for SdlModule {
                 false
             }
         }
-    }
-    fn get_component(&self, component_type: ComponentType)
-            -> Option<Box<Component>> {
-        None
     }
 }
 

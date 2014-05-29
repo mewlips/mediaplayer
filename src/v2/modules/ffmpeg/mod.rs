@@ -1,6 +1,6 @@
 use module::Module;
-use component::{Component,ComponentType,Extractor,ExtractorComponent};
-use ll_avformat;
+use component::{Component,Extractor};
+use modules::ffmpeg::avformat::{AVFormatContext};
 
 mod avformat;
 
@@ -19,17 +19,12 @@ impl Module for FFmpegModule {
     }
     fn init(&self) -> bool {
         avformat::av_register_all();
+        debug!("{} initialized.", self.get_name());
         true
     }
-    fn get_component(&self, component_type: ComponentType)
-            -> Option<Box<Component>> {
-        match component_type {
-            ExtractorComponent => {
-                let extractor = box FFmpegExtractor::new();
-                Some(extractor as Box<Component>)
-            }
-            _ => None
-        }
+    fn get_extractor(&self) -> Option<Box<Extractor>> {
+        let extractor: Box<Extractor> = box FFmpegExtractor::new();
+        Some(extractor)
     }
 }
 
@@ -39,20 +34,39 @@ impl Drop for FFmpegModule {
 }
 
 struct FFmpegExtractor {
-    context: *mut ll_avformat::AVFormatContext,
+    context: AVFormatContext,
+    path: Option<Path>,
 }
 
 impl FFmpegExtractor {
     fn new() -> FFmpegExtractor {
-        FFmpegExtractor {
-            context: avformat::alloc_context()
+        match AVFormatContext::alloc_context() {
+            Some(ctx) => {
+                FFmpegExtractor {
+                    context: ctx,
+                    path: None
+                }
+            }
+            None => {
+                fail!("alloc_context() failed");
+            }
         }
     }
 }
 
 impl Component for FFmpegExtractor {
+    fn get_name(&self) -> &'static str {
+        "FFmpegExtractor"
+    }
     fn prepare(&mut self) -> bool {
-        true
+        match self.path {
+            Some(ref path) => {
+                true
+            }
+            None => {
+                false
+            }
+        }
     }
     fn start(&mut self) -> bool {
         true
@@ -66,7 +80,23 @@ impl Component for FFmpegExtractor {
 }
 
 impl Extractor for FFmpegExtractor {
+    fn set_source(&mut self, path: &Path) -> bool {
+        match self.path {
+            Some(_) => false,
+            None => {
+                self.path = Some(path.clone());
+                true
+            }
+        }
+    }
     fn seek(&mut self) -> bool {
         true
+    }
+}
+
+impl Drop for FFmpegExtractor {
+    fn drop(&mut self) {
+        debug!("drop FFmpegExtractor");
+        self.context.free_context();
     }
 }
