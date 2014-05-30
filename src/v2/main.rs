@@ -1,6 +1,7 @@
 #![feature(phase)]
 
 extern crate getopts;
+extern crate libc;
 #[phase(syntax, link)]     extern crate log;
 
 #[cfg(ffmpeg, avcodec55)]  extern crate ll_avcodec = "avcodec55";

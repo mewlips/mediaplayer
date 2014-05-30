@@ -3,6 +3,7 @@ use component::{Component,Extractor};
 use modules::ffmpeg::avformat::{AVFormatContext};
 
 mod avformat;
+mod avutil;
 
 pub struct FFmpegModule {
     pub name: &'static str,
@@ -61,9 +62,11 @@ impl Component for FFmpegExtractor {
     fn prepare(&mut self) -> bool {
         match self.path {
             Some(ref path) => {
+                self.context.open_input(path);
                 true
             }
             None => {
+                error!("no path!");
                 false
             }
         }

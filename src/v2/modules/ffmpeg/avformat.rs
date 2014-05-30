@@ -1,5 +1,6 @@
 use ll_avformat;
 use std::ptr::mut_null;
+use modules::ffmpeg::avutil::AvError;
 
 pub fn av_register_all() {
     unsafe {
@@ -30,8 +31,8 @@ impl AVFormatContext {
         }
     }
 
-    pub fn open_input(&mut self, path: &Path) {
-        let mut result = path.with_c_str(|path| {
+    pub fn open_input(&mut self, path: &Path) -> AvError {
+        path.with_c_str(|path| {
             unsafe {
                 ll_avformat::avformat_open_input(
                     &mut self.context,
@@ -39,7 +40,6 @@ impl AVFormatContext {
                     mut_null(),
                     mut_null()) // TODO: pass dictionary
             }
-        });
-
+        })
     }
 }
