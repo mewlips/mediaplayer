@@ -14,7 +14,7 @@ enum DataSource {
     FileSource(Path)
 }
 
-#[deriving(Eq)]
+#[deriving(PartialEq)]
 pub enum Command {
     Start,
 }
