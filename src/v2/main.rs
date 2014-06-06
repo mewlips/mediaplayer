@@ -1,6 +1,7 @@
 #![feature(phase)]
 
 extern crate getopts;
+extern crate libc;
 #[phase(syntax, link)]     extern crate log;
 
 #[cfg(ffmpeg, avcodec55)]  extern crate ll_avcodec = "avcodec55";
@@ -67,29 +68,4 @@ fn print_usage(program: &str, _opts: &[OptGroup]) {
     println!("Usage: {} [options] <files>...", program);
     println!("\n[options]");
     println!("  -h, --help\t: show usage.");
-}
-
-fn play(source: &String) -> bool {
-    /*
-    let mut mp = MediaPlayer::new();
-    match url::from_str(source) {
-        Ok(url) => {
-            mp.set_url_source(url);
-        }
-        Err(_) => {
-            let path = Path::new(source);
-            if path.exists() {
-                mp.set_file_source(path);
-            }
-        }
-    }
-    if !mp.prepare() {
-        return false;
-    }
-
-    mp.start();
-
-    mp.wait();
-*/
-    true
 }

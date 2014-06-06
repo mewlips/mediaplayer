@@ -17,3 +17,4 @@ CFGS="--cfg sdl --cfg ffmpeg $FFMPEG_2_2_CFGS"
 rustc $LIBS src/v2/main.rs -o bin/v2 $CFGS || exit 1
 rustc --test $LIBS src/v2/main.rs -o bin/v2_test $CFGS || exit 1
 bin/v2_test
+RUST_LOG=5 bin/v2 aoa.mp4

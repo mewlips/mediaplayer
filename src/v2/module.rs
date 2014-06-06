@@ -1,11 +1,16 @@
-use component::{Component,ComponentType};
+use component::{Component,Extractor,Clock,VideoDecoder,AudioDecoder,VideoRenderer,AudioRenderer};
 
 pub trait Module {
     fn new() -> Self;
     fn get_name(&self) -> &'static str;
     fn init(&self) -> bool;
-    fn get_component(&self, component_type: ComponentType)
-        -> Option<Box<Component>>;
+
+    fn get_extractor(&self)      -> Option<Box<Extractor>>     { None }
+    fn get_clock(&self)          -> Option<Box<Clock>>         { None }
+    fn get_video_decoder(&self)  -> Option<Box<VideoDecoder>>  { None }
+    fn get_audio_decoder(&self)  -> Option<Box<AudioDecoder>>  { None }
+    fn get_video_renderer(&self) -> Option<Box<VideoRenderer>> { None }
+    fn get_audio_renderer(&self) -> Option<Box<AudioRenderer>> { None }
 }
 
 pub struct ModuleManager {
@@ -23,10 +28,22 @@ impl ModuleManager {
         self.modules.push(module);
     }
     pub fn init(&self) -> bool {
+        for module in self.modules.iter() {
+            if module.init() == false {
+                error!("{}.init() failed", module.get_name());
+            }
+        }
         true
     }
-    pub fn get_component(&self, component_type: ComponentType)
-            -> Option<Box<Component>> {
+    pub fn get_extractor(&self) -> Option<Box<Extractor>> {
+        for module in self.modules.iter() {
+            match module.get_extractor() {
+                a @ Some(_) => {
+                    return a;
+                }
+                None => continue
+            }
+        }
         None
     }
 }
@@ -37,7 +54,7 @@ mod tests {
     use module::tests::dummy::DummyModule;
 
     mod dummy {
-        use component::{Component,ComponentType};
+        use component::{Component,Extractor};
         use module::Module;
 
         pub struct DummyModule;
@@ -51,10 +68,6 @@ mod tests {
             }
             fn init(&self) -> bool {
                 true
-            }
-            fn get_component(&self, component_type: ComponentType)
-                    -> Option<Box<Component>> {
-                None
             }
         }
     }

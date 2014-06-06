@@ -1,4 +1,4 @@
-use component::{Component,Extractor,ExtractorComponent};
+use component::{Extractor};
 use module::ModuleManager;
 
 pub struct Player<'a> {
@@ -17,12 +17,17 @@ impl<'a> Player<'a> {
     }
     pub fn play(&mut self, source: &String) {
         self.source = Some(source.to_owned());
-        let extractor: Option<Box<Component>>
-            = self.module_manager.get_component(ExtractorComponent);
-        /*
-        self.extractor = match extractor {
-            Some(extractor) => Some(extractor as Box<Extractor>),
-            None => None
-        }*/
+
+        if self.extractor.is_none() {
+            self.extractor = self.module_manager.get_extractor();
+        }
+        match self.extractor {
+            Some(ref mut extractor) => {
+                extractor.set_data_source(&Path::new(source.to_owned()));
+            }
+            None => {
+                error!("no extractor found!");
+            }
+        }
     }
 }

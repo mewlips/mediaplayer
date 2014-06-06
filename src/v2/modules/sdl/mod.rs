@@ -1,4 +1,4 @@
-use component::{Component,ComponentType};
+use component::{Component};
 use module::Module;
 use sdl;
 
@@ -18,7 +18,7 @@ impl Module for SdlModule {
     fn init(&self) -> bool {
         match sdl::init(&[sdl::InitVideo, sdl::InitAudio, sdl::InitTimer]) {
             true => {
-                debug!("sdl::init()\n");
+                debug!("sdl::init()");
                 true
             }
             false => {
@@ -27,15 +27,11 @@ impl Module for SdlModule {
             }
         }
     }
-    fn get_component(&self, component_type: ComponentType)
-            -> Option<Box<Component>> {
-        None
-    }
 }
 
 impl Drop for SdlModule {
     fn drop(&mut self) {
         sdl::quit();
-        debug!("sdl::quit()\n");
+        debug!("sdl::quit()");
     }
 }
