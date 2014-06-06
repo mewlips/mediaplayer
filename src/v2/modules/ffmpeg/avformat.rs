@@ -13,9 +13,8 @@ pub fn av_register_all() {
 }
 
 pub struct AVFormatContext {
-    raw: *mut ll_avformat::AVFormatContext
+    pub raw: *mut ll_avformat::AVFormatContext
 }
-
 
 impl AVFormatContext {
     pub fn alloc_context() -> AVFormatContext {
@@ -64,4 +63,16 @@ impl AVFormatContext {
             }
         });
     }
+    pub fn get_raw_ref(&mut self) -> &mut ll_avformat::AVFormatContext {
+        unsafe {
+            &mut (*self.raw)
+        }
+    }
+}
+
+pub struct AVStream {
+    raw: *mut ll_avformat::AVStream
+}
+
+impl AVStream {
 }

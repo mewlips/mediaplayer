@@ -24,6 +24,7 @@ mod module;
 mod modules;
 mod player;
 mod component;
+mod stream;
 
 pub fn main() {
     let args = os::args();

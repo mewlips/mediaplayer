@@ -1,3 +1,5 @@
+use stream::{Stream};
+
 pub trait Component {
     fn prepare(&mut self) -> bool;
     fn start(&mut self)   -> bool;
@@ -8,7 +10,7 @@ pub trait Component {
     fn set_sink(&mut self)   -> bool { true }
 }
 
-pub trait Extractor {
+pub trait Extractor : Iterator<Stream> {
     fn set_data_source(&mut self, path: &Path) -> bool;
     fn seek(&mut self) -> bool;
     fn pump(&mut self) -> bool;

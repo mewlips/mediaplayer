@@ -24,6 +24,10 @@ impl<'a> Player<'a> {
         match self.extractor {
             Some(ref mut extractor) => {
                 extractor.set_data_source(&Path::new(source.to_owned()));
+
+                for stream in *extractor {
+                    println!("Stream[{}]: {}", stream.index, stream.media_type);
+                }
             }
             None => {
                 error!("no extractor found!");
