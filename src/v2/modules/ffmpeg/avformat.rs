@@ -1,5 +1,6 @@
 use libc::types::os::arch::c95::{c_int};
 use ll_avformat;
+use modules::ffmpeg::avcodec::AVPacket;
 use modules::ffmpeg::avutil::AVDictionary;
 use modules::ffmpeg::result::{AvResult,AvError};
 use std::ptr::mut_null;
@@ -62,6 +63,16 @@ impl AVFormatContext {
                                             if is_output { 1 } else { 0 })
             }
         });
+    }
+    pub fn read_frame(&mut self, packet: &mut AVPacket) -> AvResult<()> {
+        let result = unsafe {
+            ll_avformat::av_read_frame(self.get_raw_ref(), packet.get_raw_ref())
+        };
+        if result == 0 {
+            Ok(())
+        } else {
+            Err(AvError::new("av_read_frame() failed", result))
+        }
     }
     pub fn get_raw_ref(&mut self) -> &mut ll_avformat::AVFormatContext {
         unsafe {

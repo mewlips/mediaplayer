@@ -1,16 +1,22 @@
-use component::{Component,Extractor,Clock,VideoDecoder,AudioDecoder,VideoRenderer,AudioRenderer};
+use component::{Message};
 
 pub trait Module {
     fn new() -> Self;
     fn get_name(&self) -> &'static str;
     fn init(&self) -> bool;
 
-    fn get_extractor(&self)      -> Option<Box<Extractor>>     { None }
-    fn get_clock(&self)          -> Option<Box<Clock>>         { None }
-    fn get_video_decoder(&self)  -> Option<Box<VideoDecoder>>  { None }
-    fn get_audio_decoder(&self)  -> Option<Box<AudioDecoder>>  { None }
-    fn get_video_renderer(&self) -> Option<Box<VideoRenderer>> { None }
-    fn get_audio_renderer(&self) -> Option<Box<AudioRenderer>> { None }
+    fn get_extractor(&self)
+            -> Option<(SyncSender<Message>, proc():Send)> { None }
+    fn get_clock(&self)
+            -> Option<(SyncSender<Message>, proc():Send)> { None }
+    fn get_video_decoder(&self)
+            -> Option<(SyncSender<Message>, proc():Send)> { None }
+    fn get_audio_decoder(&self)
+            -> Option<(SyncSender<Message>, proc():Send)> { None }
+    fn get_video_renderer(&self)
+            -> Option<(SyncSender<Message>, proc():Send)> { None }
+    fn get_audio_renderer(&self)
+            -> Option<(SyncSender<Message>, proc():Send)> { None }
 }
 
 pub struct ModuleManager {
@@ -35,7 +41,8 @@ impl ModuleManager {
         }
         true
     }
-    pub fn get_extractor(&self) -> Option<Box<Extractor>> {
+    pub fn get_extractor(&self)
+            -> Option<(SyncSender<Message>, proc():Send)> {
         for module in self.modules.iter() {
             match module.get_extractor() {
                 a @ Some(_) => {
@@ -54,7 +61,6 @@ mod tests {
     use module::tests::dummy::DummyModule;
 
     mod dummy {
-        use component::{Component,Extractor};
         use module::Module;
 
         pub struct DummyModule;

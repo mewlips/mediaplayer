@@ -1,5 +1,6 @@
 #![feature(phase)]
 
+extern crate alloc;
 extern crate getopts;
 extern crate libc;
 #[phase(syntax, link)]     extern crate log;

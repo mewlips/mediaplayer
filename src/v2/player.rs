@@ -1,10 +1,11 @@
-use component::{Extractor};
+use component::{Message,Pipe,MsgAddSender};
 use module::ModuleManager;
+use std::comm::{sync_channel, SyncSender};
 
 pub struct Player<'a> {
     module_manager: &'a ModuleManager,
     source: Option<String>,
-    extractor: Option<Box<Extractor>>,
+    extractor: Option<SyncSender<Message>>,
 }
 
 impl<'a> Player<'a> {
@@ -16,21 +17,18 @@ impl<'a> Player<'a> {
         }
     }
     pub fn play(&mut self, source: &String) {
+        let (my_sender, receiver) = sync_channel::<Message>(100);
         self.source = Some(source.to_owned());
 
-        if self.extractor.is_none() {
-            self.extractor = self.module_manager.get_extractor();
-        }
-        match self.extractor {
-            Some(ref mut extractor) => {
-                extractor.set_data_source(&Path::new(source.to_owned()));
-
-                for stream in *extractor {
-                    println!("Stream[{}]: {}", stream.index, stream.media_type);
-                }
+        let extractor = self.module_manager.get_extractor();
+        match extractor {
+            Some((sender, procedure)) => {
+                self.extractor = Some(sender.clone());
+                spawn(procedure);
+                sender.send(MsgAddSender(my_sender.clone()));
             }
             None => {
-                error!("no extractor found!");
+                error!("no extractor found");
             }
         }
     }

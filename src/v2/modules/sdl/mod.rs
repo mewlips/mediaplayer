@@ -1,4 +1,3 @@
-use component::{Component};
 use module::Module;
 use sdl;
 

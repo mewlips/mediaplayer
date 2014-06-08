@@ -1,40 +1,36 @@
 use stream::{Stream};
+use std::comm::{sync_channel, SyncSender};
 
-pub trait Component {
-    fn prepare(&mut self) -> bool;
-    fn start(&mut self)   -> bool;
-    fn pause(&mut self)   -> bool;
-    fn stop(&mut self)    -> bool;
-
-    fn set_source(&mut self) -> bool { true }
-    fn set_sink(&mut self)   -> bool { true }
+pub enum Message {
+    MsgAddSender(SyncSender<Message>),
 }
 
-pub trait Extractor : Iterator<Stream> {
-    fn set_data_source(&mut self, path: &Path) -> bool;
-    fn seek(&mut self) -> bool;
-    fn pump(&mut self) -> bool;
+pub struct Pipe {
+    pub receivers: Vec<Receiver<Message>>,
+    pub senders: Vec<SyncSender<Message>>,
 }
 
-pub trait Clock {
-}
-
-pub trait Decoder {
-    fn decode(&mut self) -> bool;
-}
-
-pub trait VideoDecoder : Decoder {
-}
-
-pub trait AudioDecoder : Decoder {
-}
-
-pub trait Renderer {
-    fn render(&mut self) -> bool;
-}
-
-pub trait VideoRenderer : Renderer {
-}
-
-pub trait AudioRenderer : Renderer {
+impl Pipe {
+    pub fn new() -> Pipe {
+        Pipe {
+            receivers: Vec::new(),
+            senders: Vec::new(),
+        }
+    }
+    pub fn get_sender(&mut self, bound: uint) -> SyncSender<Message> {
+        let (sender, receiver) = sync_channel::<Message>(bound);
+        self.receivers.push(receiver);
+        sender
+    }
+    pub fn get_receiver(&mut self, bound: uint) -> Receiver<Message> {
+        let (sender, receiver) = sync_channel::<Message>(bound);
+        self.senders.push(sender);
+        receiver
+    }
+    pub fn add_sender(&mut self, sender: SyncSender<Message>) {
+        self.senders.push(sender);
+    }
+    pub fn add_receiver(&mut self, receiver: Receiver<Message>) {
+        self.receivers.push(receiver);
+    }
 }

@@ -1,12 +1,13 @@
 use ll_avutil;
 use module::Module;
-use component::{Component, Extractor};
+use component::{Pipe, Message, MsgAddSender};
 use stream::{Stream,Video,Audio,Other};
 use libc::types::os::arch::c95::c_uint;
 
 mod result;
 mod avformat;
 mod avutil;
+mod avcodec;
 
 pub struct FFmpegModule {
     pub name: &'static str,
@@ -25,9 +26,24 @@ impl Module for FFmpegModule {
         avformat::av_register_all();
         true
     }
-    fn get_extractor(&self) -> Option<Box<Extractor>> {
-        Some(box FFmpegExtractor::new() as Box<Extractor>)
+
+    fn get_extractor(&self) -> Option<(SyncSender<Message>, proc():Send)> {
+        let (sender, receiver) = sync_channel::<Message>(100);
+        Some((sender, proc() {
+            let mut extractor = FFmpegExtractor::new();
+
+            loop {
+                match receiver.recv() {
+                    MsgAddSender(sender) => {
+                        debug!("MsgAddSender");
+                        extractor.pipe.add_sender(sender);
+                    }
+                    //_ => continue
+                }
+            }
+        }))
     }
+
 }
 
 impl Drop for FFmpegModule {
@@ -35,16 +51,63 @@ impl Drop for FFmpegModule {
     }
 }
 
-struct FFmpegExtractor {
+pub struct FFmpegExtractor {
+    pipe: Pipe,
     context: avformat::AVFormatContext,
     offset: int, // for Iterator
 }
 
 impl FFmpegExtractor {
-    fn new() -> FFmpegExtractor {
+    pub fn new() -> FFmpegExtractor {
         FFmpegExtractor {
+            pipe: Pipe::new(),
             context: avformat::AVFormatContext::alloc_context(),
             offset: 0
+        }
+    }
+
+    fn set_data_source(&mut self, path: &Path) -> bool {
+        match self.context.open_input(path) {
+            Ok(_) => debug!("open_input()"),
+            Err(e) => {
+                error!("set_data_source(): {}", e);
+                return false;
+            }
+        }
+        match self.context.find_stream_info(None) {
+            Ok(_) => debug!("find_stream_info()"),
+            Err(e) => {
+                error!("set_data_source(): {}", e);
+                return false;
+            }
+        }
+        self.context.dump_format(0, path, false);
+
+        true
+    }
+
+    fn seek(&mut self) -> bool {
+        true
+    }
+    fn pump(&mut self) -> bool {
+        match avcodec::AVPacket::new() {
+            Some(mut packet) => {
+                match self.context.read_frame(&mut packet) {
+                    Ok(_) => {
+                        let index = packet.get_raw_ref().stream_index;
+                        debug!("index = {}", index);
+                        true
+                    }
+                    Err(e) => {
+                        error!("pump(): {}", e);
+                        false
+                    }
+                }
+            }
+            None => {
+                error!("packet allocation failed");
+                false
+            }
         }
     }
 }
@@ -74,49 +137,5 @@ impl Iterator<Stream> for FFmpegExtractor {
             self.offset += 1;
             Some(stream)
         }
-    }
-}
-
-impl Component for FFmpegExtractor {
-    fn prepare(&mut self) -> bool {
-        true
-    }
-    fn start(&mut self) -> bool {
-        true
-    }
-    fn pause(&mut self) -> bool {
-        true
-    }
-    fn stop(&mut self) -> bool {
-        true
-    }
-}
-
-impl Extractor for FFmpegExtractor {
-    fn set_data_source(&mut self, path: &Path) -> bool {
-        match self.context.open_input(path) {
-            Ok(_) => debug!("open_input()"),
-            Err(e) => {
-                error!("set_data_source(): {}", e);
-                return false;
-            }
-        }
-        match self.context.find_stream_info(None) {
-            Ok(_) => debug!("find_stream_info()"),
-            Err(e) => {
-                error!("set_data_source(): {}", e);
-                return false;
-            }
-        }
-        self.context.dump_format(0, path, false);
-
-        true
-    }
-
-    fn seek(&mut self) -> bool {
-        true
-    }
-    fn pump(&mut self) -> bool {
-        true
     }
 }
