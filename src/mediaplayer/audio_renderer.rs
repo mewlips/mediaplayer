@@ -92,15 +92,20 @@ pub struct AudioRenderer {
 
 impl AudioRenderer {
     pub fn new(codec_ctx: *mut avcodec::AVCodecContext) -> Option<AudioRenderer> {
-        let os::Pipe {input: pipe_input, out: pipe_out} = os::pipe();
-
-        let audio_pipe = AudioPipe::new(pipe_input);
-        Some(AudioRenderer {
-            component: Some(ComponentStruct::new(AudioRendererComponent)),
-            codec_ctx: codec_ctx.clone(),
-            pipe_out: pipe_out,
-            audio_pipe: audio_pipe,
-        })
+        match unsafe { os::pipe() } {
+            Ok(os::Pipe {reader: pipe_input, writer: pipe_out}) => {
+                let audio_pipe = AudioPipe::new(pipe_input);
+                Some(AudioRenderer {
+                    component: Some(ComponentStruct::new(AudioRendererComponent)),
+                    codec_ctx: codec_ctx.clone(),
+                    pipe_out: pipe_out,
+                    audio_pipe: audio_pipe,
+                })
+            }
+            Err(_) => {
+                None
+            }
+        }
     }
     pub fn start(&mut self) {
         let wanted_spec =

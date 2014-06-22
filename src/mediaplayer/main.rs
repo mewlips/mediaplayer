@@ -5,7 +5,7 @@ extern crate avformat = "avformat55";
 extern crate avutil = "avutil52";
 extern crate getopts;
 extern crate libc;
-#[phase(syntax, link)]
+#[phase(plugin, link)]
 extern crate log;
 extern crate sdl;
 extern crate swscale = "swscale2";
@@ -55,14 +55,14 @@ pub fn init() -> bool {
 pub fn main() {
     let args = os::args();
     let program = args.get(0).clone();
-    let opts = ~[
+    let opts = [
         optflag("h", "help", "show help"),
     ];
 
     let matches = match getopts(args.tail(), opts) {
         Ok(m) => { m }
         Err(f) => {
-            error!("{}\n", f.to_err_msg());
+            error!("{}\n", f);
             print_usage(program, opts);
             os::set_exit_status(EXIT_FAILURE as int);
             return;
