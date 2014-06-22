@@ -2,7 +2,7 @@ use std::comm::{TryRecvError,Empty,Disconnected};
 use std::fmt;
 use message::{Message,MessageData,MsgStart};
 
-#[deriving(Eq)]
+#[deriving(PartialEq)]
 pub enum ComponentType {
     ManagerComponent,
     ExtractorComponent,
