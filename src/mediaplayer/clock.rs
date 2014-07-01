@@ -29,7 +29,7 @@ impl Clock {
             let latency = 0.2f64;
             let mut clock = latency;
             let mut paused = false;
-            let mut extract_count = 0;
+            let mut extract_count = 0i;
             loop {
                 let last_clock = Clock::get_time();
                 match component.recv() {

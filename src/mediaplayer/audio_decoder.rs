@@ -54,31 +54,31 @@ impl AudioDecoder {
                         }
                         unsafe {
                             "in_channel_layout".with_c_str(|name| {
-                                avutil::av_opt_set_int(swr_ctx, name,
+                                avutil::av_opt_set_int(transmute(swr_ctx), name,
                                     codec.channel_layout as i64, 0);
                             });
                             "in_sample_fmt".with_c_str(|name| {
-                                avutil::av_opt_set_int(swr_ctx, name,
+                                avutil::av_opt_set_int(transmute(swr_ctx), name,
                                     codec.sample_fmt as i64, 0);
                             });
                             "in_sample_rate".with_c_str(|name| {
-                                avutil::av_opt_set_int(swr_ctx, name,
+                                avutil::av_opt_set_int(transmute(swr_ctx), name,
                                     codec.sample_rate as i64, 0);
                             });
                             "out_channel_layout".with_c_str(|name| {
-                                avutil::av_opt_set_int(swr_ctx, name,
+                                avutil::av_opt_set_int(transmute(swr_ctx), name,
                                     avutil::AV_CH_LAYOUT_STEREO as i64, 0);
                             });
                             "out_sample_fmt".with_c_str(|name| {
-                                avutil::av_opt_set_int(swr_ctx, name,
+                                avutil::av_opt_set_int(transmute(swr_ctx), name,
                                     avutil::AV_SAMPLE_FMT_S16 as i64, 0);
                             });
                             "out_sample_rate".with_c_str(|name| {
-                                avutil::av_opt_set_int(swr_ctx, name,
+                                avutil::av_opt_set_int(transmute(swr_ctx), name,
                                     codec.sample_rate as i64, 0);
                             });
                         }
-                        if unsafe { swresample::swr_init(swr_ctx) } < 0 {
+                        if unsafe { swresample::swr_init(transmute(swr_ctx)) } < 0 {
                             error!("swr_init() failed");
                             None
                         } else {

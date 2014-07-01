@@ -86,7 +86,7 @@ impl VideoDecoder {
                                                    &*packet);
                     if (*packet).dts == avutil::AV_NOPTS_VALUE &&
                        !(*frame).opaque.is_null() {
-                        let frame_pts: *u64 = transmute((*frame).opaque);
+                        let frame_pts: *const u64 = transmute((*frame).opaque);
                         if *frame_pts == avutil::AV_NOPTS_VALUE as u64 {
                             pts = (*packet).dts as f64;
                         }

@@ -13,7 +13,7 @@ pub static SDL_AudioBufferSize: u16 = 1024;
 mod audio_alt {
     use sdl::audio::{AudioFormat,Channels,ll,ObtainedAudioSpec};
     use libc::{c_int,c_void};
-    use std::ptr::null;
+    use std::ptr::mut_null;
     use std::mem::{transmute};
     use audio_pipe::AudioPipe;
     use std::mem::forget;
@@ -23,7 +23,7 @@ mod audio_alt {
         pub format: AudioFormat,
         pub channels: Channels,
         pub samples: u16,
-        pub userdata: *c_void,
+        pub userdata: *mut c_void,
     }
 
     impl DesiredAudioSpec {
@@ -37,7 +37,7 @@ mod audio_alt {
                 samples: samples,
                 padding: 0,
                 size: 0,
-                callback: native_callback as *u8,
+                callback: native_callback as *mut u8,
                 userdata: userdata,
             }
         }
@@ -54,8 +54,8 @@ mod audio_alt {
                 samples: 0,
                 padding: 0,
                 size: 0,
-                callback: null(),
-                userdata: null(),
+                callback: mut_null(),
+                userdata: mut_null(),
             };
 
             if ll::SDL_OpenAudio(&mut ll_desired, &mut ll_obtained) < 0 {
@@ -73,7 +73,7 @@ mod audio_alt {
         }
     }
 
-    extern fn native_callback(userdata: *c_void, stream: *mut u8, len: c_int) {
+    extern fn native_callback(userdata: *const c_void, stream: *mut u8, len: c_int) {
         unsafe {
             let mut audio_pipe: Box<AudioPipe> = transmute(userdata);
             audio_pipe.copy_to(stream, len as uint);

@@ -12,7 +12,7 @@ pub struct DecoderUserData {
 
 pub struct FFmpegDecoder {
     pub codec_ctx: *mut avcodec::AVCodecContext,
-    pub codec: *avcodec::AVCodec,
+    pub codec: *const avcodec::AVCodec,
     pub decoder: *mut avcodec::AVCodec,
     pub options: *mut avutil::AVDictionary,
     pub time_base: avutil::AVRational
