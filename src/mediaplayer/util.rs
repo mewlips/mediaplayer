@@ -9,7 +9,7 @@ pub fn av_strerror(e: i32) -> String {
     unsafe {
         avutil::av_strerror(-(e as c_int), ptr as *mut i8, len as size_t);
     }
-    buf.to_str()
+    buf.to_string()
 }
 
 pub fn usleep(usec: int) -> int {

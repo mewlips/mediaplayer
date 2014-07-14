@@ -57,7 +57,7 @@ impl MediaPlayer {
     pub fn prepare(&mut self) -> bool {
         match self.source {
             Some(UrlSource(ref url)) => {
-                warn!("Playing url isn't implemented yet! ({})", url.to_str());
+                warn!("Playing url isn't implemented yet! ({})", url);
                 return false;
             }
             Some(FileSource(ref path)) => {

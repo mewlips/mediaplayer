@@ -6,7 +6,7 @@ LIBS=
 old_ifs="$IFS"
 IFS=":"
 for pkg_path in $RUST_PATH; do
-    LIBS="$LIBS -L $pkg_path/lib"
+    LIBS="$LIBS -L $pkg_path/lib -L $pkg_path/target"
 done
 IFS="$old_ifs"
 
