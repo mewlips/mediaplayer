@@ -1,0 +1,30 @@
+[package]
+
+name = "mediaplayer"
+version = "0.1.0"
+authors = [ "mewlips@gmail.com" ]
+
+[dependencies.sdl]
+
+git = "https://github.com/brson/rust-sdl.git"
+
+[dev_dependencies.avformat55]
+
+git = "https://github.com/mewlips/rust-ffmpeg.git"
+path = "avformat55"
+
+[dev_dependencies.swscale2]
+
+git = "https://github.com/mewlips/rust-ffmpeg.git"
+path = "swscale2"
+
+[dev_dependencies.swresample0]
+
+git = "https://github.com/mewlips/rust-ffmpeg.git"
+path = "swresample0"
+
+[[bin]]
+
+name = "mediaplayer"
+path = "src/main.rs"
+
