@@ -17,6 +17,7 @@ use getopts::{getopts,optflag,OptGroup};
 use mediaplayer::MediaPlayer;
 use libc::consts::os::c95::EXIT_FAILURE;
 use std::os;
+use url::Url;
 
 mod av_stream;
 mod extractor;
@@ -54,7 +55,7 @@ pub fn init() -> bool {
 
 pub fn main() {
     let args = os::args();
-    let program = args.get(0).clone();
+    let program = args[0].clone();
     let opts = [
         optflag("h", "help", "show help"),
     ];
@@ -90,7 +91,7 @@ pub fn print_usage(program: String, _opts: &[OptGroup]) {
 
 pub fn play(source: String) -> bool {
     let mut mp = MediaPlayer::new();
-    match url::from_str(source.as_slice()) {
+    match Url::parse(source.as_slice()) {
         Ok(url) => {
             mp.set_url_source(url);
         }

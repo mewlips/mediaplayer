@@ -2,7 +2,6 @@ use avformat;
 use avutil;
 use libc::{c_uint};
 
-#[deriving(Clone)]
 pub struct AVStream {
     pub av_stream: *mut avformat::AVStream,
 }
