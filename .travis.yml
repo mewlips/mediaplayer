@@ -6,6 +6,7 @@ before_install:
     - rustc -v
     - cargo -V
 install:
+    - sudo apt-get update
     - sudo apt-get install yasm libsdl1.2-dev libsdl-mixer1.2-dev libsdl-image1.2-dev
     - wget http://www.ffmpeg.org/releases/ffmpeg-2.2.4.tar.bz2
     - tar -xjf ffmpeg-2.2.4.tar.bz2
