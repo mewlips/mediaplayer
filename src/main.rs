@@ -55,7 +55,7 @@ pub fn init() -> bool {
 
 pub fn main() {
     let args = os::args();
-    let program = args[0].clone();
+    let program = args.get(0).clone();
     let opts = [
         optflag("h", "help", "show help"),
     ];
