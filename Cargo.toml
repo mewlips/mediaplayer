@@ -8,17 +8,17 @@ authors = [ "mewlips@gmail.com" ]
 
 git = "https://github.com/brson/rust-sdl.git"
 
-[dev_dependencies.avformat55]
+[dependencies.avformat55]
 
 git = "https://github.com/mewlips/rust-ffmpeg.git"
 path = "avformat55"
 
-[dev_dependencies.swscale2]
+[dependencies.swscale2]
 
 git = "https://github.com/mewlips/rust-ffmpeg.git"
 path = "swscale2"
 
-[dev_dependencies.swresample0]
+[dependencies.swresample0]
 
 git = "https://github.com/mewlips/rust-ffmpeg.git"
 path = "swresample0"
