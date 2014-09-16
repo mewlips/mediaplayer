@@ -1,21 +1,22 @@
 #![feature(phase)]
 
-extern crate avcodec = "avcodec55";
-extern crate avformat = "avformat55";
-extern crate avutil = "avutil52";
+extern crate "avcodec55" as avcodec;
+extern crate "avformat55" as avformat;
+extern crate "avutil52" as avutil;
 extern crate getopts;
 extern crate libc;
 #[phase(plugin, link)]
 extern crate log;
 extern crate sdl;
-extern crate swscale = "swscale2";
-extern crate swresample = "swresample0";
+extern crate "swscale2" as swscale;
+extern crate "swresample0" as swresample;
 extern crate url;
 
 use avformat::av_register_all;
 use getopts::{getopts,optflag,OptGroup};
 use mediaplayer::MediaPlayer;
 use libc::consts::os::c95::EXIT_FAILURE;
+use std::io::fs::PathExtensions;
 use std::os;
 use url::Url;
 
