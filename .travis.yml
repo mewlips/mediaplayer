@@ -1,10 +1,9 @@
+language: rust
+os:
+    - linux
 env:
     global:
         - LD_LIBRARY_PATH: /usr/local/lib
-before_install:
-    - curl http://www.rust-lang.org/rustup.sh | sudo -E sh
-    - rustc -v
-    - cargo -V
 install:
     - sudo apt-get update
     - sudo apt-get install yasm libsdl1.2-dev libsdl-mixer1.2-dev libsdl-image1.2-dev
@@ -14,5 +13,8 @@ install:
     - ./configure --enable-shared --disable-static --prefix=/usr/local
     - make -j2
     - sudo make install
+before_script:
+    - rustc -v
+    - cargo -V
 script:
-    - cargo build --verbose
+    - cargo build -v
