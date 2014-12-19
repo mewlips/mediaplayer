@@ -1,8 +1,9 @@
 use std::comm::{TryRecvError,Empty,Disconnected};
 use std::fmt;
-use message::{Message,MessageData,MsgStart};
+use message::{Message,MessageData};
+use message::MessageData::{MsgStart};
 
-#[deriving(PartialEq)]
+#[deriving(PartialEq,Clone)]
 pub enum ComponentType {
     ManagerComponent,
     ExtractorComponent,
@@ -17,14 +18,14 @@ pub enum ComponentType {
 impl fmt::Show for ComponentType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            ManagerComponent       => write!(f, "ComponentManager"),
-            ExtractorComponent     => write!(f, "Extractor"),
-            AudioDecoderComponent  => write!(f, "AudioDecoder"),
-            VideoDecoderComponent  => write!(f, "VideoDecoder"),
-            ClockComponent         => write!(f, "Clock"),
-            AudioRendererComponent => write!(f, "AudioRenderer"),
-            VideoRendererComponent => write!(f, "VideoRenderer"),
-            UiComponent            => write!(f, "UI"),
+            ComponentType::ManagerComponent       => write!(f, "ComponentManager"),
+            ComponentType::ExtractorComponent     => write!(f, "Extractor"),
+            ComponentType::AudioDecoderComponent  => write!(f, "AudioDecoder"),
+            ComponentType::VideoDecoderComponent  => write!(f, "VideoDecoder"),
+            ComponentType::ClockComponent         => write!(f, "Clock"),
+            ComponentType::AudioRendererComponent => write!(f, "AudioRenderer"),
+            ComponentType::VideoRendererComponent => write!(f, "VideoRenderer"),
+            ComponentType::UiComponent            => write!(f, "UI"),
         }
     }
 }
@@ -53,8 +54,8 @@ impl ComponentStruct {
         self.sender.take().unwrap()
     }
     pub fn send(&self, to: ComponentType, msg:MessageData) -> bool {
-        match self.mgr_sender.get_ref().send_opt(Message {
-                from: self.component_type,
+        match self.mgr_sender.as_ref().unwrap().send_opt(Message {
+                from: self.component_type.clone(),
                 to: to,
                 msg: msg
             }) {
@@ -85,11 +86,11 @@ impl ComponentStruct {
     }
     pub fn wait_for_start(&self) {
         match self.recv() {
-            Message { from: ManagerComponent, msg: MsgStart, .. } => {
+            Message { from: ComponentType::ManagerComponent, msg: MsgStart, .. } => {
                 info!("start {}", self.component_type);
             }
             _ => {
-                fail!("unexpected message received");
+                panic!("unexpected message received");
             }
         }
     }

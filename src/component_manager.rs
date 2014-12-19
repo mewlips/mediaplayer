@@ -1,5 +1,7 @@
-use component::{ComponentType,Component,ManagerComponent};
-use message::{Message,MessageData,MsgStart,MsgEOF,MsgError,MsgStop};
+use component::{ComponentType,Component};
+use component::ComponentType::{ManagerComponent};
+use message::{Message,MessageData};
+use message::MessageData::{MsgStart,MsgEOF,MsgError,MsgStop};
 
 pub struct ComponentManager {
     mp_sender: Option<Sender<bool>>,
@@ -20,10 +22,10 @@ impl ComponentManager {
     }
     pub fn add(&mut self, component: &mut Component) {
         let component = component.get();
-        let component_type = component.component_type;
+        let component_type = component.component_type.clone();
         let sender = component.take_sender();
         component.set_mgr_sender(self.msg_sender.clone());
-        self.components.get_mut_ref().push((component_type, sender));
+        self.components.as_mut().unwrap().push((component_type, sender));
         info!("new component add: {}", component.component_type);
     }
     pub fn start(&mut self) {
@@ -31,10 +33,10 @@ impl ComponentManager {
         debug!("ComponentManager::start()");
         let components = self.components.take().unwrap();
         let mp_sender= self.mp_sender.take().unwrap();
-        spawn(proc() {
+        spawn(move || {
             let broadcast = |msg: MessageData| {
-                for &(component_type, ref sender) in components.iter() {
-                    sender.send(Message::new(ManagerComponent, component_type,
+                for &(ref component_type, ref sender) in components.iter() {
+                    sender.send(Message::new(ManagerComponent, component_type.clone(),
                                            msg.clone()));
                 }
             };
@@ -57,8 +59,8 @@ impl ComponentManager {
                                 }
                             }
                         } else {
-                            for &(component_type, ref sender) in components.iter() {
-                                if component_type == to {
+                            for &(ref component_type, ref sender) in components.iter() {
+                                if *component_type == to {
                                     sender.send(Message::new(from, to, msg));
                                     break;
                                 }

@@ -2,15 +2,17 @@ use avcodec;
 use avformat;
 use avutil;
 use av_stream::{AVStream,AVStreamIterator};
-use std::ptr::mut_null;
+use std::ptr::null_mut;
 use util;
 use std::mem::size_of;
 use std::mem::{transmute};
 use libc::c_int;
-use component::{Component,ComponentStruct,ExtractorComponent,
-                VideoDecoderComponent,AudioDecoderComponent,ManagerComponent};
-use message::{Message,MsgStop,MsgSeek,MsgFlush,
-              MsgExtract,MsgError,MsgEOF,MsgPacketData};
+use component::{Component,ComponentStruct};
+use component::ComponentType::{ExtractorComponent,VideoDecoderComponent,
+                               AudioDecoderComponent,ManagerComponent};
+use message::{Message,MessageData};
+use message::MessageData::{MsgStop,MsgSeek,MsgFlush,
+                           MsgExtract,MsgError,MsgEOF,MsgPacketData};
 
 pub struct Extractor {
     pub component: Option<ComponentStruct>,
@@ -41,7 +43,7 @@ impl Extractor {
         let mut result = path.with_c_str(|path| {
             unsafe { 
                 avformat::avformat_open_input(&mut extractor.fmt_ctx, path,
-                                              mut_null(), mut_null())
+                                              null_mut(), null_mut())
             }
         });
         if result < 0 {
@@ -50,7 +52,7 @@ impl Extractor {
         }
 
         result = unsafe {
-            avformat::avformat_find_stream_info(extractor.fmt_ctx, mut_null())
+            avformat::avformat_find_stream_info(extractor.fmt_ctx, null_mut())
         };
         if result < 0 {
             error!("avformat_find_stream_info() failed! {}", util::av_strerror(result));
@@ -112,7 +114,7 @@ impl Extractor {
         let video_time_base = self.video_time_base.clone();
         let audio_time_base = self.audio_time_base.clone();
         let component = self.component.take().unwrap();
-        spawn(proc() {
+        spawn(move || {
             component.wait_for_start();
             let mut stopped = false;
             while Extractor::pump(&component, fmt_ctx,
@@ -131,7 +133,7 @@ impl Extractor {
                         let seek_pos = (pts * avutil::AV_TIME_BASE as f64) as i64;
                         Extractor::seek(&component, fmt_ctx, seek_pos, flag,
                                         video_index, audio_index,
-                                        video_time_base, audio_time_base);
+                                        video_time_base.clone(), audio_time_base.clone());
                     }
                     _ => {
                         error!("unexpected message received");
@@ -245,6 +247,6 @@ impl Drop for Extractor {
 
 impl Component for Extractor {
     fn get<'a>(&'a mut self) -> &'a mut ComponentStruct {
-        self.component.get_mut_ref()
+        self.component.as_mut().unwrap()
     }
 }

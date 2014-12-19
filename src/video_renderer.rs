@@ -3,10 +3,12 @@ use avutil;
 use sdl;
 use std::mem::{transmute};
 use libc::{c_int};
-use std::ptr::{null,mut_null};
+use std::ptr::{null,null_mut};
 use swscale;
-use component::{Component,ComponentStruct,VideoRendererComponent};
-use message::{Message,MsgStop,MsgVideoData};
+use component::{Component,ComponentStruct};
+use component::ComponentType::{VideoRendererComponent};
+use message::{Message,MessageData};
+use message::MessageData::{MsgStop,MsgVideoData};
 
 pub struct VideoRenderer {
     pub component: Option<ComponentStruct>,
@@ -28,25 +30,25 @@ impl VideoRenderer {
     pub fn start(&mut self) {
         let screen = match sdl::video::set_video_mode(
                                             self.width, self.height, 24,
-                                            [sdl::video::HWSurface],
-                                            [sdl::video::DoubleBuf]) {
+                                            &[sdl::video::SurfaceFlag::HWSurface],
+                                            &[sdl::video::VideoFlag::DoubleBuf]) {
             Ok(screen) => screen,
-            Err(err) => fail!("sdl::video::set_video_mode() failed! {}", err)
+            Err(err) => panic!("sdl::video::set_video_mode() failed! {}", err)
         };
         let frame_rgb = unsafe {
             avcodec::avcodec_alloc_frame()
         };
         let sws_ctx = unsafe {
             swscale::sws_getCachedContext(
-                mut_null(), self.width as c_int, self.height as c_int, self.pix_fmt,
+                null_mut(), self.width as c_int, self.height as c_int, self.pix_fmt,
                 self.width as c_int, self.height as c_int, avutil::AV_PIX_FMT_BGR24,
-                swscale::SWS_BILINEAR as c_int, mut_null(), mut_null(),
+                swscale::SWS_BILINEAR as c_int, null_mut(), null_mut(),
                 null())
         };
         let width = self.width.clone();
         let height = self.height.clone();
         let component = self.component.take().unwrap();
-        spawn(proc() {
+        spawn(move || {
             component.wait_for_start();
             while VideoRenderer::render(&component, &screen, frame_rgb.clone(),
                                         width, height, sws_ctx.clone()) {
@@ -103,6 +105,6 @@ impl Drop for VideoRenderer {
 
 impl Component for VideoRenderer {
     fn get<'a>(&'a mut self) -> &'a mut ComponentStruct {
-        self.component.get_mut_ref()
+        self.component.as_mut().unwrap()
     }
 }

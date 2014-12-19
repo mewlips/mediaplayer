@@ -5,11 +5,13 @@ use ffmpeg_decoder::FFmpegDecoder;
 use std::c_vec::CVec;
 use std::mem::{transmute};
 use libc::c_int;
-use std::ptr::{mut_null};
-use component::{Component,ComponentStruct,AudioDecoderComponent,
-                AudioRendererComponent,ClockComponent,ExtractorComponent};
-use message::{Message,MsgStop,MsgPts,MsgExtract,
-              MsgPacketData,MsgAudioData,MsgFlush};
+use std::ptr::{null_mut};
+use component::{Component,ComponentStruct};
+use component::ComponentType::{AudioDecoderComponent,AudioRendererComponent,
+                               ClockComponent,ExtractorComponent};
+use message::{Message,MessageData};
+use message::MessageData::{MsgStop,MsgPts,MsgExtract,
+                           MsgPacketData,MsgAudioData,MsgFlush};
 use swresample;
 use util;
 
@@ -110,10 +112,10 @@ impl AudioDecoder {
         let time_base = self.decoder.time_base.clone();
         let component = self.component.take().unwrap();
         let swr_ctx = self.swr_ctx.clone();
-        spawn(proc() {
+        spawn(move || {
             component.wait_for_start();
             while AudioDecoder::decode(&component, codec_ctx,
-                                       time_base, swr_ctx) {
+                                       time_base.clone(), swr_ctx) {
                 ;
             }
             info!("stop AudioDecoder");
@@ -135,7 +137,7 @@ impl AudioDecoder {
                     if got_frame != 0 {
                         component.send(ClockComponent, MsgPts(pts.clone()));
                         let data_size = avutil::av_samples_get_buffer_size(
-                            mut_null(), (*codec_ctx).channels, (*frame).nb_samples,
+                            null_mut(), (*codec_ctx).channels, (*frame).nb_samples,
                             (*codec_ctx).sample_fmt, 1);
                         match swr_ctx {
                             Some(swr_ctx) => {
@@ -152,7 +154,7 @@ impl AudioDecoder {
                             None => {
                                 let cv = CVec::<u8>::new(transmute((*frame).data[0]),
                                                         data_size as uint);
-                                let v = Vec::from_slice(cv.as_slice());
+                                let v = cv.as_slice().to_vec();
                                 component.send(AudioRendererComponent,
                                     MsgAudioData(AudioData::new(v, pts)));
                             }
@@ -183,7 +185,7 @@ impl AudioDecoder {
     }
     fn resample(swr_ctx: &mut swresample::SwrContext,
                 frame: &mut avutil::AVFrame) -> Option<Vec<u8>> {
-        let mut resampled_out: *mut u8 = mut_null();
+        let mut resampled_out: *mut u8 = null_mut();
         let mut resample_lines: c_int = 0;
         let resample_size: i64 = unsafe {
             avutil::av_rescale_rnd(
@@ -207,7 +209,7 @@ impl AudioDecoder {
             transmute(resample_input), frame.nb_samples)
         };
         let out_bytes = unsafe { avutil::av_samples_get_buffer_size(
-            mut_null(), 2, out_size, avutil::AV_SAMPLE_FMT_S16, 1)
+            null_mut(), 2, out_size, avutil::AV_SAMPLE_FMT_S16, 1)
         };
 
         if out_size < 0 {
@@ -217,7 +219,7 @@ impl AudioDecoder {
 
         let resampled = unsafe {
             let cv = CVec::<u8>::new(transmute(resampled_out), out_bytes as uint);
-            Vec::from_slice(cv.as_slice())
+            cv.as_slice().to_vec()
         };
 
         unsafe {
@@ -236,6 +238,6 @@ impl Drop for AudioDecoder {
 
 impl Component for AudioDecoder {
     fn get<'a>(&'a mut self) -> &'a mut ComponentStruct {
-        self.component.get_mut_ref()
+        self.component.as_mut().unwrap()
     }
 }

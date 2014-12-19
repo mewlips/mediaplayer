@@ -5,15 +5,17 @@ use sdl::audio;
 use audio_pipe::AudioPipe;
 use avcodec;
 use std::mem::transmute;
-use component::{Component,ComponentStruct,AudioRendererComponent};
-use message::{Message,MsgAudioData,MsgStop};
+use component::{Component,ComponentStruct};
+use component::ComponentType::{AudioRendererComponent};
+use message::{Message,MessageData};
+use message::MessageData::{MsgAudioData,MsgStop};
 
 pub static SDL_AudioBufferSize: u16 = 1024;
 
 mod audio_alt {
     use sdl::audio::{AudioFormat,Channels,ll,ObtainedAudioSpec};
     use libc::{c_int,c_void};
-    use std::ptr::mut_null;
+    use std::ptr::null_mut;
     use std::mem::{transmute};
     use audio_pipe::AudioPipe;
     use std::mem::forget;
@@ -54,8 +56,8 @@ mod audio_alt {
                 samples: 0,
                 padding: 0,
                 size: 0,
-                callback: mut_null(),
-                userdata: mut_null(),
+                callback: null_mut(),
+                userdata: null_mut(),
             };
 
             if ll::SDL_OpenAudio(&mut ll_desired, &mut ll_obtained) < 0 {
@@ -128,7 +130,7 @@ impl AudioRenderer {
 
         let pipe_out = self.pipe_out.clone();
         let component = self.component.take().unwrap();
-        spawn(proc() {
+        spawn(move || {
             component.wait_for_start();
             let mut paused = true;
             loop {
@@ -172,6 +174,6 @@ impl Drop for AudioRenderer {
 
 impl Component for AudioRenderer {
     fn get<'a>(&'a mut self) -> &'a mut ComponentStruct {
-        self.component.get_mut_ref()
+        self.component.as_mut().unwrap()
     }
 }

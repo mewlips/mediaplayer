@@ -5,10 +5,12 @@ use std::mem::{transmute};
 use libc::{c_int};
 use ffmpeg_decoder::{DecoderUserData,FFmpegDecoder};
 use std::mem::size_of;
-use component::{Component,ComponentStruct,VideoDecoderComponent,
-                ClockComponent,ExtractorComponent,VideoRendererComponent};
-use message::{Message,MsgPts,MsgStop,MsgFlush,
-              MsgExtract,MsgPacketData,MsgVideoData};
+use component::{Component,ComponentStruct};
+use component::ComponentType::{VideoDecoderComponent,ClockComponent,
+                               ExtractorComponent,VideoRendererComponent};
+use message::{Message,MessageData};
+use message::MessageData::{MsgPts,MsgStop,MsgFlush,
+                           MsgExtract,MsgPacketData,MsgVideoData};
 
 #[deriving(Clone)]
 pub struct VideoData {
@@ -37,7 +39,7 @@ impl VideoDecoder {
     pub fn new(video_stream: &AVStream) -> Option<VideoDecoder> {
         match FFmpegDecoder::new(video_stream) {
             Some(decoder) => {
-                let codec_ctx = unsafe { *decoder.codec_ctx };
+                let codec_ctx = unsafe { decoder.codec_ctx.as_ref().unwrap() };
                 let width = codec_ctx.width as int;
                 let height = codec_ctx.height as int;
                 let pix_fmt = codec_ctx.pix_fmt;
@@ -62,9 +64,9 @@ impl VideoDecoder {
         let codec_ctx = self.decoder.codec_ctx.clone();
         let time_base = self.decoder.time_base.clone();
         let component = self.component.take().unwrap();
-        spawn(proc() {
+        spawn(move || {
             component.wait_for_start();
-            while VideoDecoder::decode(&component, codec_ctx, time_base) {
+            while VideoDecoder::decode(&component, codec_ctx, time_base.clone()) {
                 ;
             }
             info!("stop VideoDecoder");
@@ -139,7 +141,7 @@ impl Drop for VideoDecoder {
 
 impl Component for VideoDecoder {
     fn get<'a>(&'a mut self) -> &'a mut ComponentStruct {
-        self.component.get_mut_ref()
+        self.component.as_mut().unwrap()
     }
 }
 

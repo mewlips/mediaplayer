@@ -1,9 +1,11 @@
 use avutil::av_gettime;
 use util;
-use component::{Component,ComponentStruct,
-                AudioDecoderComponent,ExtractorComponent,
-                VideoDecoderComponent,ClockComponent,UiComponent};
-use message::{Message,MsgStop,MsgPts,MsgExtract,MsgPause,MsgSeek};
+use component::{Component,ComponentStruct};
+use component::ComponentType::{AudioDecoderComponent,ExtractorComponent,
+                               VideoDecoderComponent,ClockComponent,
+                               UiComponent};
+use message::{Message,MessageData};
+use message::MessageData::{MsgStop,MsgPts,MsgExtract,MsgPause,MsgSeek};
 
 pub struct Clock {
     pub component: Option<ComponentStruct>,
@@ -24,7 +26,7 @@ impl Clock {
     }
     pub fn start(&mut self) {
         let component = self.component.take().unwrap();
-        spawn(proc() {
+        spawn(move || {
             component.wait_for_start();
             let latency = 0.2f64;
             let mut clock = latency;
@@ -85,6 +87,6 @@ impl Drop for Clock {
 
 impl Component for Clock {
     fn get<'a>(&'a mut self) -> &'a mut ComponentStruct {
-        self.component.get_mut_ref()
+        self.component.as_mut().unwrap()
     }
 }

@@ -7,10 +7,8 @@ use video_renderer::VideoRenderer;
 use audio_renderer::AudioRenderer;
 use component_manager::{ComponentManager};
 use ui::UI;
-use url;
 
 enum DataSource {
-    UrlSource(url::Url),
     FileSource(Path)
 }
 
@@ -48,19 +46,12 @@ impl MediaPlayer {
             ui: None,
         }
     }
-    pub fn set_url_source(&mut self, url: url::Url) {
-        self.source = Some(UrlSource(url));
-    }
     pub fn set_file_source(&mut self, path: Path) {
-        self.source = Some(FileSource(path));
+        self.source = Some(DataSource::FileSource(path));
     }
     pub fn prepare(&mut self) -> bool {
         match self.source {
-            Some(UrlSource(ref url)) => {
-                warn!("Playing url isn't implemented yet! ({})", url);
-                return false;
-            }
-            Some(FileSource(ref path)) => {
+            Some(DataSource::FileSource(ref path)) => {
                 debug!("prepare: {}", path.display());
                 self.extractor = Extractor::new(path);
                 if self.extractor.is_none() {
@@ -72,28 +63,28 @@ impl MediaPlayer {
                 return false;
             }
         }
-        self.component_mgr.add(self.extractor.get_mut_ref());
-        match self.extractor.get_mut_ref().get_stream(avutil::AVMEDIA_TYPE_VIDEO, 0) {
+        self.component_mgr.add(self.extractor.as_mut().unwrap());
+        match self.extractor.as_mut().unwrap().get_stream(avutil::AVMEDIA_TYPE_VIDEO, 0) {
             Some(video_stream) => {
                 self.video_decoder = VideoDecoder::new(video_stream);
-                self.component_mgr.add(self.video_decoder.get_mut_ref());
-                let width = self.video_decoder.get_mut_ref().width;
-                let height = self.video_decoder.get_mut_ref().height;
-                let pix_fmt = self.video_decoder.get_mut_ref().pix_fmt;
+                self.component_mgr.add(self.video_decoder.as_mut().unwrap());
+                let width = self.video_decoder.as_mut().unwrap().width;
+                let height = self.video_decoder.as_mut().unwrap().height;
+                let pix_fmt = self.video_decoder.as_mut().unwrap().pix_fmt;
                 self.video_renderer = Some(VideoRenderer::new(width, height, pix_fmt));
-                self.component_mgr.add(self.video_renderer.get_mut_ref());
+                self.component_mgr.add(self.video_renderer.as_mut().unwrap());
             }
             None => {
                 debug!("no video stream found");
             }
         }
-        match self.extractor.get_mut_ref().get_stream(avutil::AVMEDIA_TYPE_AUDIO, 0) {
+        match self.extractor.as_mut().unwrap().get_stream(avutil::AVMEDIA_TYPE_AUDIO, 0) {
             Some(audio_stream) => {
                 self.audio_decoder = AudioDecoder::new(audio_stream);
-                self.component_mgr.add(self.audio_decoder.get_mut_ref());
-                let codec_ctx = self.audio_decoder.get_mut_ref().decoder.codec_ctx.clone();
+                self.component_mgr.add(self.audio_decoder.as_mut().unwrap());
+                let codec_ctx = self.audio_decoder.as_mut().unwrap().decoder.codec_ctx.clone();
                 self.audio_renderer = AudioRenderer::new(codec_ctx);
-                self.component_mgr.add(self.audio_renderer.get_mut_ref());
+                self.component_mgr.add(self.audio_renderer.as_mut().unwrap());
             }
             None => {
                 debug!("no audio stream found");
@@ -101,27 +92,27 @@ impl MediaPlayer {
         }
 
         self.clock = Some(Clock::new());
-        let clock = self.clock.get_mut_ref();
+        let clock = self.clock.as_mut().unwrap();
         self.component_mgr.add(clock);
 
         self.ui = Some(UI::new());
-        let ui = self.ui.get_mut_ref();
+        let ui = self.ui.as_mut().unwrap();
         self.component_mgr.add(ui);
 
         true
     }
     pub fn start(&mut self) {
-        self.extractor.get_mut_ref().start();
+        self.extractor.as_mut().unwrap().start();
         if self.audio_decoder.is_some() {
-            self.audio_decoder.get_mut_ref().start();
-            self.audio_renderer.get_mut_ref().start();
+            self.audio_decoder.as_mut().unwrap().start();
+            self.audio_renderer.as_mut().unwrap().start();
         }
         if self.video_decoder.is_some() {
-            self.video_decoder.get_mut_ref().start();
-            self.video_renderer.get_mut_ref().start();
+            self.video_decoder.as_mut().unwrap().start();
+            self.video_renderer.as_mut().unwrap().start();
         }
-        self.clock.get_mut_ref().start();
-        self.ui.get_mut_ref().start();
+        self.clock.as_mut().unwrap().start();
+        self.ui.as_mut().unwrap().start();
 
         self.component_mgr.start();
     }

@@ -40,18 +40,18 @@ pub enum MessageData {
 impl fmt::Show for MessageData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            MsgStart           => write!(f, "MsgStart"),
-            MsgStop            => write!(f, "MsgStop"),
-            MsgPause           => write!(f, "MsgPause"),
-            MsgPts(pts)        => write!(f, "MsgPts({})", pts),
-            MsgExtract         => write!(f, "MsgExtract"),
-            MsgPacketData(_)   => write!(f, "MsgPacketData(..)"),
-            MsgVideoData(_)    => write!(f, "MsgVideoData(..)"),
-            MsgAudioData(_)    => write!(f, "MsgAudioData(..)"),
-            MsgError(_)        => write!(f, "MsgError(..)"),
-            MsgEOF             => write!(f, "MsgEOF"),
-            MsgSeek(pts,flags) => write!(f, "MsgSeek({},{})", pts, flags),
-            MsgFlush           => write!(f, "MsgFlush"),
+            MessageData::MsgStart           => write!(f, "MsgStart"),
+            MessageData::MsgStop            => write!(f, "MsgStop"),
+            MessageData::MsgPause           => write!(f, "MsgPause"),
+            MessageData::MsgPts(pts)        => write!(f, "MsgPts({})", pts),
+            MessageData::MsgExtract         => write!(f, "MsgExtract"),
+            MessageData::MsgPacketData(_)   => write!(f, "MsgPacketData(..)"),
+            MessageData::MsgVideoData(_)    => write!(f, "MsgVideoData(..)"),
+            MessageData::MsgAudioData(_)    => write!(f, "MsgAudioData(..)"),
+            MessageData::MsgError(_)        => write!(f, "MsgError(..)"),
+            MessageData::MsgEOF             => write!(f, "MsgEOF"),
+            MessageData::MsgSeek(pts,flags) => write!(f, "MsgSeek({},{})", pts, flags),
+            MessageData::MsgFlush           => write!(f, "MsgFlush"),
         }
     }
 }

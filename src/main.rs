@@ -10,7 +10,6 @@ extern crate log;
 extern crate sdl;
 extern crate "swscale2" as swscale;
 extern crate "swresample0" as swresample;
-extern crate url;
 
 use avformat::av_register_all;
 use getopts::{getopts,optflag,OptGroup};
@@ -18,7 +17,6 @@ use mediaplayer::MediaPlayer;
 use libc::consts::os::c95::EXIT_FAILURE;
 use std::io::fs::PathExtensions;
 use std::os;
-use url::Url;
 
 mod av_stream;
 mod extractor;
@@ -41,7 +39,7 @@ pub fn init() -> bool {
         av_register_all();
         debug!("av_register_all()");
     }
-    match sdl::init(&[sdl::InitVideo, sdl::InitAudio, sdl::InitTimer]) {
+    match sdl::init(&[sdl::InitFlag::Video, sdl::InitFlag::Audio, sdl::InitFlag::Timer]) {
         true =>  {
             debug!("sdl::init()");
             true
@@ -56,8 +54,8 @@ pub fn init() -> bool {
 
 pub fn main() {
     let args = os::args();
-    let program = args.get(0).clone();
-    let opts = [
+    let program = args.get(0).unwrap().clone();
+    let opts = &[
         optflag("h", "help", "show help"),
     ];
 
@@ -92,16 +90,9 @@ pub fn print_usage(program: String, _opts: &[OptGroup]) {
 
 pub fn play(source: String) -> bool {
     let mut mp = MediaPlayer::new();
-    match Url::parse(source.as_slice()) {
-        Ok(url) => {
-            mp.set_url_source(url);
-        }
-        Err(_) => {
-            let path = Path::new(source);
-            if path.exists() {
-                mp.set_file_source(path);
-            }
-        }
+    let path = Path::new(source);
+    if path.exists() {
+        mp.set_file_source(path);
     }
     if !mp.prepare() {
         return false;
