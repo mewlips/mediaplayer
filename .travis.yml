@@ -13,8 +13,5 @@ install:
     - ./configure --enable-shared --disable-static --prefix=/usr/local
     - make -j2
     - sudo make install
-before_script:
-    - rustc -v
-    - cargo -V
 script:
     - cargo build -v
